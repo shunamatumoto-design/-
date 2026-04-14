@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>TOEIC対策英単語帳</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f3f8; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: #333; }
         .screen { display: none; flex-direction: column; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; background-color: #f0f3f8; }
@@ -12,7 +11,8 @@
         
         header { background: #2c3e50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .back-btn { background: none; border: none; color: white; font-size: 16px; font-weight: bold; cursor: pointer; padding: 5px; }
-        .header-center { display: flex; flex-direction: column; align-items: center; }
+        .reset-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.5); color: white; font-size: 12px; font-weight: bold; cursor: pointer; padding: 5px 10px; border-radius: 5px; display: none; }
+        .header-center { display: flex; flex-direction: column; align-items: center; flex: 1; }
         .header-title { font-weight: bold; font-size: 18px; }
         .header-sub { font-size: 0.8em; color: #a8e6cf; font-weight: bold; margin-top: 3px; }
 
@@ -38,8 +38,6 @@
         .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
         input[type="text"], textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
         button.action-btn { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
-        button.action-btn.green { background: #2ecc71; }
-        button.action-btn.purple { background: #9b59b6; } /* フィルターボタン用 */
         
         .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
         input[type="range"] { flex: 1; margin: 0 15px; }
@@ -68,12 +66,12 @@
 
 <div id="study-screen" class="screen">
     <header>
-        <button class="back-btn" onclick="navTo('home')">◀ ホーム</button>
+        <button class="back-btn" onclick="navTo('home')" style="width: 60px;">◀ ホーム</button>
         <div class="header-center">
             <div class="header-title" id="study-title">すべて出題</div>
             <div class="header-sub" id="remaining-count"></div>
         </div>
-        <div style="width: 50px;"></div>
+        <button class="reset-btn" id="reset-btn" onclick="resetProgress()">🔄 リセット</button>
     </header>
     <div id="card-container">
         <div id="empty-msg" class="hidden">単語がありません！</div>
@@ -98,16 +96,6 @@
             <input type="text" id="input-ja" placeholder="日本語">
             <input type="text" id="input-en" placeholder="英語">
             <button class="action-btn" id="add-btn">追加</button>
-        </div>
-        <div class="section-box">
-            <div class="section-title">📷 写真から追加 (OCR)</div>
-            <input type="file" id="image-upload" accept="image/*" capture="environment" style="margin-bottom: 10px;">
-            <div id="ocr-status" style="font-size: 0.8em; color: #e67e22; margin-bottom: 5px;"></div>
-            <textarea id="ocr-result" rows="5" placeholder="ここに読み取った文字が出ます。"></textarea>
-            
-            <button class="action-btn purple" id="filter-btn">🧹 金フレ専用フィルター（英単語と意味だけ抽出）</button>
-            
-            <button class="action-btn green" id="add-ocr-btn" style="margin-top: 15px;">テキストから一括追加</button>
         </div>
         <div class="section-box">
             <div class="section-title">✏️ 単語の編集・削除</div>
@@ -147,12 +135,12 @@
             <div class="setting-row" style="display: block; margin-bottom: 15px;">
                 <div style="margin-bottom: 5px; font-weight: bold;">音声の種類（ネイティブ発音を選択）</div>
                 <select id="setting-voice"></select>
-                <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">※スマホで発音がおかしい場合は、ここから「Samantha」や「Google US English」などに変更してください。</div>
+                <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">スマホで発音がおかしい場合は、ここからSamanthaなどに変更してください。</div>
             </div>
             <div class="setting-row" style="display: block;">
                 <div style="margin-bottom: 10px; font-weight: bold;">出題形式</div>
                 <select id="setting-playmode">
-                    <option value="once">1周モード（残りの単語数を表示）</option>
+                    <option value="once">1周モード（続きから再開可能）</option>
                     <option value="random">完全ランダムモード（無限に出題）</option>
                 </select>
             </div>
@@ -195,7 +183,57 @@
         {ja: "予約、アポ、約束、任命、指名", en: "appointment", weak: false}, {ja: "追加の", en: "additional", weak: false},
         {ja: "申込(用紙)、応募(書類)、応用、アプリ", en: "application", weak: false}, {ja: "生産、(映画や劇の)制作、作品", en: "production", weak: false},
         {ja: "料金", en: "fee", weak: false}, {ja: "勧める、推薦する", en: "recommend", weak: false},
-        {ja: "賞、授与する", en: "award", weak: false}, {ja: "遅らせる、遅延", en: "delay", weak: false}
+        {ja: "賞、授与する", en: "award", weak: false}, {ja: "遅らせる、遅延", en: "delay", weak: false},
+        {ja: "確認する", en: "confirm", weak: false}, {ja: "注意する、述べる、気づく、メモ、注(釈)", en: "note", weak: false},
+        {ja: "小包、パッケージ、(容器に)詰める", en: "package", weak: false}, {ja: "文書、書類、記録する", en: "document", weak: false},
+        {ja: "郵便(物)、郵送する", en: "mail", weak: false}, {ja: "追加の、余分の、余分に、余分のもの", en: "extra", weak: false},
+        {ja: "事務所、会社、堅い、確実な", en: "firm", weak: false}, {ja: "出版する、掲載する、公表する", en: "publish", weak: false},
+        {ja: "位置している、(場所に)ある", en: "located", weak: false}, {ja: "放送する、放送(番組)", en: "broadcast", weak: false},
+        {ja: "手配する、(きちんと)並べる", en: "arrange", weak: false}, {ja: "減らす、(価格などを)下げる", en: "reduce", weak: false},
+        {ja: "取り換える、取って代わる、後任となる", en: "replace", weak: false}, {ja: "登録する、(不満などを)述べる、レジ、登録簿", en: "register", weak: false},
+        {ja: "集中する、重点を置く、焦点、中心", en: "focus", weak: false}, {ja: "提案、案", en: "proposal", weak: false},
+        {ja: "紹介する、導入する", en: "introduce", weak: false}, {ja: "(〜の方を)好む", en: "prefer", weak: false},
+        {ja: "昇進させる、販売を促進する、促進する", en: "promote", weak: false}, {ja: "機会、チャンス", en: "opportunity", weak: false},
+        {ja: "開発、発展、進展、開発地", en: "development", weak: false}, {ja: "会計、経理", en: "accounting", weak: false},
+        {ja: "手当、恩恵、特典、利益を得る、利益になる", en: "benefit", weak: false}, {ja: "賃貸借する、レンタルする、家賃、賃貸料", en: "rent", weak: false},
+        {ja: "代理店、(政府)機関", en: "agency", weak: false}, {ja: "今度の、まもなくやって来る", en: "upcoming", weak: false},
+        {ja: "受け入れる、受け付ける、受け取る", en: "accept", weak: false}, {ja: "担当者、代表者、典型的な", en: "representative", weak: false},
+        {ja: "著者、(本などを)書く", en: "author", weak: false}, {ja: "締め切り、(最終)期限", en: "deadline", weak: false},
+        {ja: "住民、居住者", en: "resident", weak: false}, {ja: "候補者、志願者", en: "candidate", weak: false},
+        {ja: "準備する、手配する、組織する、整理する", en: "organize", weak: false}, {ja: "実験室、研究所", en: "laboratory", weak: false},
+        {ja: "発売する、公表する、公開する、発売、公表、公開", en: "release", weak: false}, {ja: "行う、ふるまい", en: "conduct", weak: false},
+        {ja: "参加する", en: "participate", weak: false}, {ja: "法人の、企業の、会社の", en: "corporate", weak: false},
+        {ja: "意見、感想、フィードバック", en: "feedback", weak: false}, {ja: "委員会", en: "committee", weak: false},
+        {ja: "管理、経営(陣)", en: "management", weak: false}, {ja: "資源、財産、(教育)資料", en: "resource", weak: false},
+        {ja: "拠点を置く、基礎を置く、基盤、基礎、基本", en: "base", weak: false}, {ja: "現在", en: "currently", weak: false},
+        {ja: "料金、割合、レート、評価する、格付けする", en: "rate", weak: false}, {ja: "財政上の、財務の、金融上の", en: "financial", weak: false},
+        {ja: "(よく)考える、検討する", en: "consider", weak: false}, {ja: "設置する、インストールする", en: "install", weak: false},
+        {ja: "許す、可能にする、(時間などを)見込む", en: "allow", weak: false}, {ja: "同僚", en: "colleague", weak: false},
+        {ja: "見積もり(書)、見積もる", en: "estimate", weak: false}, {ja: "開始する、売り出す、開始、発売", en: "launch", weak: false},
+        {ja: "感謝する、ありがたく思う、価値を認める", en: "appreciate", weak: false}, {ja: "追跡する、線路、プラットホーム、走路", en: "track", weak: false},
+        {ja: "残念ながら、あいにく", en: "unfortunately", weak: false}, {ja: "編集者", en: "editor", weak: false},
+        {ja: "前の、以前の", en: "previous", weak: false}, {ja: "商業用の、商売用の、CM", en: "commercial", weak: false},
+        {ja: "推薦(状)、照会(先)、参照、言及する", en: "reference", weak: false}, {ja: "招待(状)", en: "invitation", weak: false},
+        {ja: "説明する、描写する", en: "describe", weak: false}, {ja: "知らせる", en: "inform", weak: false},
+        {ja: "進んで申し出る、志願する、ボランティア、志願者", en: "volunteer", weak: false}, {ja: "重役、役員、重役の、役員の", en: "executive", weak: false},
+        {ja: "交通機関、交通手段、輸送", en: "transportation", weak: false}, {ja: "支店、支社、支部、分館、枝", en: "branch", weak: false},
+        {ja: "返金、返金する", en: "refund", weak: false}, {ja: "成功した、好結果の", en: "successful", weak: false},
+        {ja: "商品", en: "merchandise", weak: false}, {ja: "思い出させる、念を押す", en: "remind", weak: false},
+        {ja: "元の、最初の、独創的な、オリジナル、原本", en: "original", weak: false}, {ja: "品ぞろえ、選択、選抜", en: "selection", weak: false},
+        {ja: "引きつける、引き寄せる", en: "attract", weak: false}, {ja: "対処する、扱う、手で触れる、取っ手", en: "handle", weak: false},
+        {ja: "内部連絡、内部通達", en: "memo", weak: false}, {ja: "添付する、取り付ける", en: "attach", weak: false},
+        {ja: "訂正する、正確な、正しい", en: "correct", weak: false}, {ja: "議会", en: "council", weak: false},
+        {ja: "〜することになっている、思う", en: "suppose", weak: false}, {ja: "通常の、定期的な、常連の、常連客", en: "regular", weak: false},
+        {ja: "衣料品、衣類", en: "clothing", weak: false}, {ja: "展示(会)、展示(品)、展示する", en: "exhibit", weak: false},
+        {ja: "物件、不動産、所有物、資産、特性", en: "property", weak: false}, {ja: "拡大する、進出する", en: "expand", weak: false},
+        {ja: "主催する、司会する、司会者、主催者、主人", en: "host", weak: false}, {ja: "予約する、取っておく、(権利等を)保有する、蓄え", en: "reserve", weak: false},
+        {ja: "満足した、喜んだ、うれしい", en: "pleased", weak: false}, {ja: "指示(書)、取扱説明書", en: "instruction", weak: false},
+        {ja: "最新の", en: "latest", weak: false}, {ja: "請求書、法案、請求書を送る", en: "bill", weak: false},
+        {ja: "前進、進歩、事前の、進む、前進させる", en: "advance", weak: false}, {ja: "奨励する、勧める、促進する", en: "encourage", weak: false},
+        {ja: "承認する、賛成する", en: "approve", weak: false}, {ja: "経費、費用", en: "expense", weak: false},
+        {ja: "改修、改装", en: "renovation", weak: false}, {ja: "素晴らしい、非常に優れた、優秀な", en: "excellent", weak: false},
+        {ja: "資金、基金、資金を提供する", en: "fund", weak: false}, {ja: "運営する、操作する、操業する、作動する", en: "operate", weak: false},
+        {ja: "履歴書", en: "résumé", weak: false}, {ja: "予定を変更する", en: "reschedule", weak: false}
     ];
 
     let oldWords = JSON.parse(localStorage.getItem('myWords'));
@@ -208,15 +246,26 @@
             settings: { volume: 1.0, autoPlay: false, playMode: 'once', voiceURI: '' }
         };
         saveData();
-    } else if (!appData.settings.playMode) {
-        appData.settings.playMode = 'once'; appData.settings.voiceURI = '';
+    } else {
+        if (!appData.settings.playMode) {
+            appData.settings.playMode = 'once'; appData.settings.voiceURI = '';
+        }
+        
+        let mainDeck = appData.decks['deck_1'];
+        if (mainDeck) {
+            initialWords.forEach(newWord => {
+                const exists = mainDeck.words.some(w => w.en === newWord.en);
+                if (!exists) {
+                    mainDeck.words.push(newWord);
+                }
+            });
+        }
         saveData();
     }
 
     function saveData() { localStorage.setItem('myVocabApp_v2', JSON.stringify(appData)); }
     function getActiveWords() { return appData.decks[appData.activeDeckId].words; }
 
-    // 音声リストの取得と設定
     let voices = [];
     function populateVoiceList() {
         voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
@@ -230,7 +279,6 @@
             voiceSelect.appendChild(option);
         });
     }
-    // ブラウザによって音声の読み込みタイミングが違うため
     speechSynthesis.onvoiceschanged = populateVoiceList;
     setTimeout(populateVoiceList, 500);
 
@@ -243,12 +291,14 @@
             document.getElementById('study-screen').classList.add('active');
             currentStudyMode = screenId === 'study-weak' ? 'weak' : 'all';
             document.getElementById('study-title').innerText = currentStudyMode === 'weak' ? '苦手モード' : 'すべて出題';
+            
+            document.getElementById('reset-btn').style.display = appData.settings.playMode === 'once' ? 'block' : 'none';
             initDeck();
         } else {
             document.getElementById(screenId + '-screen').classList.add('active');
             if (screenId === 'deck') renderDeckList();
             if (screenId === 'add') renderEditList();
-            if (screenId === 'settings') populateVoiceList(); // 設定を開くたびにリスト更新
+            if (screenId === 'settings') populateVoiceList();
         }
     }
 
@@ -265,7 +315,6 @@
         const uttr = new SpeechSynthesisUtterance(text);
         uttr.lang = 'en-US';
         uttr.volume = appData.settings.volume;
-        // 設定で選んだ音声があればそれを適用
         if(appData.settings.voiceURI && voices.length > 0) {
             const selectedVoice = voices.find(v => v.voiceURI === appData.settings.voiceURI);
             if(selectedVoice) uttr.voice = selectedVoice;
@@ -276,10 +325,39 @@
 
     function initDeck() {
         const words = getActiveWords();
-        currentDeck = currentStudyMode === 'weak' ? words.filter(w => w.weak === true) : [...words];
-        currentDeck.sort(() => Math.random() - 0.5);
-        currentIndex = 0;
+        const mode = currentStudyMode;
+        const deckData = appData.decks[appData.activeDeckId];
+
+        if (appData.settings.playMode === 'once') {
+            if (!deckData.savedState) deckData.savedState = {};
+            
+            if (deckData.savedState[mode] && deckData.savedState[mode].index < deckData.savedState[mode].queue.length) {
+                currentDeck = deckData.savedState[mode].queue;
+                currentIndex = deckData.savedState[mode].index;
+            } else {
+                currentDeck = mode === 'weak' ? words.filter(w => w.weak === true) : [...words];
+                currentDeck.sort(() => Math.random() - 0.5);
+                currentIndex = 0;
+                deckData.savedState[mode] = { queue: currentDeck, index: currentIndex };
+                saveData();
+            }
+        } else {
+            currentDeck = mode === 'weak' ? words.filter(w => w.weak === true) : [...words];
+            currentDeck.sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+        }
         showCard();
+    }
+
+    function resetProgress() {
+        if(confirm("このモードの進捗をリセットして、最初からやり直しますか？")) {
+            const deckData = appData.decks[appData.activeDeckId];
+            if(deckData.savedState) {
+                deckData.savedState[currentStudyMode] = null;
+            }
+            saveData();
+            initDeck();
+        }
     }
 
     function showCard() {
@@ -303,6 +381,10 @@
                 emptyMsg.classList.remove('hidden');
                 emptyMsg.innerText = "1周終わりました！";
                 remainingCountEl.innerText = "残り: 0 単語";
+                
+                const deckData = appData.decks[appData.activeDeckId];
+                if(deckData.savedState) deckData.savedState[currentStudyMode] = null;
+                saveData();
                 return;
             }
             remainingCountEl.innerText = `残り: ${currentDeck.length - currentIndex} 単語`;
@@ -348,23 +430,30 @@
         const activeWords = getActiveWords();
         const originalWord = activeWords.find(w => w.en === currentWord.en && w.ja === currentWord.ja);
         
-        if (direction === 'right') {
-            originalWord.weak = false;
-            card.style.transform = 'translateX(100vw) rotate(15deg)';
-        } else {
-            originalWord.weak = true;
-            card.style.transform = 'translateX(-100vw) rotate(-15deg)';
+        if (originalWord) {
+            if (direction === 'right') {
+                originalWord.weak = false;
+                card.style.transform = 'translateX(100vw) rotate(15deg)';
+            } else {
+                originalWord.weak = true;
+                card.style.transform = 'translateX(-100vw) rotate(-15deg)';
+            }
         }
         
         card.style.opacity = '0';
-        saveData();
         
         setTimeout(() => {
             if (appData.settings.playMode === 'once') {
                 currentIndex++;
+                const deckData = appData.decks[appData.activeDeckId];
+                if(!deckData.savedState) deckData.savedState = {};
+                if(deckData.savedState[currentStudyMode]) {
+                    deckData.savedState[currentStudyMode].index = currentIndex;
+                }
             } else {
                 currentIndex = Math.floor(Math.random() * currentDeck.length);
             }
+            saveData();
             showCard();
         }, 300);
     }
@@ -391,7 +480,6 @@
         else if (e.code === 'ArrowLeft' && isFlipped) handleSwipe('left');
     });
 
-    // ========== 編集・追加機能 ==========
     document.getElementById('add-btn').addEventListener('click', () => {
         const ja = document.getElementById('input-ja').value.trim();
         const en = document.getElementById('input-en').value.trim();
@@ -405,60 +493,6 @@
         }
     });
 
-    document.getElementById('image-upload').addEventListener('change', async (e) => {
-        const file = e.target.files[0]; if (!file) return;
-        const ocrStatus = document.getElementById('ocr-status'); ocrStatus.innerText = "解析中...";
-        try {
-            const result = await Tesseract.recognize(file, 'eng+jpn', { logger: m => { if(m.status === 'recognizing text') ocrStatus.innerText = `解析中... ${Math.round(m.progress * 100)}%`; } });
-            document.getElementById('ocr-result').value = result.data.text; ocrStatus.innerText = "完了！そのまま追加するか、フィルターボタンで整理してください。";
-        } catch(err) { ocrStatus.innerText = "エラーが発生しました。"; }
-    });
-
-    // ★新機能：金フレ専用フィルターのロジック★
-    document.getElementById('filter-btn').addEventListener('click', () => {
-        const rawText = document.getElementById('ocr-result').value;
-        if(!rawText) { alert('先に写真を読み込んでください！'); return; }
-        
-        const lines = rawText.split('\n');
-        let formattedLines = [];
-
-        lines.forEach(line => {
-            // 発音記号 [ ] やカッコ ( ) などを削除してスッキリさせる
-            let cleaned = line.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
-
-            // 行の先頭が英単語（スペース含む）で、その後に日本語（漢字やひらがな）が続くパターンを探す
-            const match = cleaned.match(/^([a-zA-Z\-\s]+)[\s・]*([\u3040-\u30FF\u4E00-\u9FFF]+.*)$/);
-            
-            if (match) {
-                let en = match[1].trim();
-                let ja = match[2].trim();
-                
-                // 英単語が3単語以内の場合だけ抽出（長い例文などを弾くため）
-                if (en.length > 0 && en.split(' ').length <= 3) {
-                    // 日本語の意味部分から、例文や関連語の情報を簡易的にカットする
-                    // 「例」「反」「関」「類」などの記号以降をバッサリ切る
-                    let shortJa = ja.split(/[。例反類関]/)[0].trim();
-                    if(shortJa.length > 0) {
-                        formattedLines.push(`${en}, ${shortJa}`);
-                    }
-                }
-            }
-        });
-
-        if(formattedLines.length > 0) {
-            document.getElementById('ocr-result').value = formattedLines.join('\n');
-            alert('抽出に成功しました！変な所があれば手で直して、「一括追加」を押してください。');
-        } else {
-            alert('上手く抽出できませんでした。手動で直すか、写真の撮り方を変えてみてください。');
-        }
-    });
-
-    document.getElementById('add-ocr-btn').addEventListener('click', () => {
-        const text = document.getElementById('ocr-result').value; const lines = text.split('\n'); let addedCount = 0;
-        lines.reverse().forEach(line => { const parts = line.split(/[,\t]/); if (parts.length >= 2) { const en = parts[0].trim(); const ja = parts[1].trim(); if (en && ja) { getActiveWords().unshift({ ja, en, weak: false }); addedCount++; } } });
-        if (addedCount > 0) { saveData(); alert(`${addedCount}件追加しました！`); document.getElementById('ocr-result').value = ''; renderEditList(); } else { alert("「英語, 日本語」の形式になっているか確認してください。"); }
-    });
-
     function renderEditList(filterText = '') {
         const listEl = document.getElementById('edit-word-list'); listEl.innerHTML = ''; const words = getActiveWords();
         words.forEach((word, index) => {
@@ -467,14 +501,13 @@
             const enInput = document.createElement('input'); enInput.type = 'text'; enInput.value = word.en; enInput.placeholder = "英語"; enInput.onchange = (e) => { word.en = e.target.value.trim(); saveData(); };
             const jaInput = document.createElement('input'); jaInput.type = 'text'; jaInput.value = word.ja; jaInput.placeholder = "日本語"; jaInput.onchange = (e) => { word.ja = e.target.value.trim(); saveData(); };
             const delBtn = document.createElement('button'); delBtn.className = 'del-btn'; delBtn.innerText = '🗑️';
-            delBtn.onclick = () => { if (confirm(`「${word.en}」を削除しますか？`)) { words.splice(index, 1); saveData(); renderEditList(document.getElementById('edit-search').value); } };
+            delBtn.onclick = () => { if (confirm('削除しますか？')) { words.splice(index, 1); saveData(); renderEditList(document.getElementById('edit-search').value); } };
             div.appendChild(enInput); div.appendChild(jaInput); div.appendChild(delBtn); listEl.appendChild(div);
         });
     }
 
     document.getElementById('edit-search').addEventListener('input', (e) => { renderEditList(e.target.value); });
 
-    // ========== 単語帳管理 ==========
     function renderDeckList() {
         const listEl = document.getElementById('deck-list'); listEl.innerHTML = '';
         Object.values(appData.decks).forEach(deck => {
@@ -491,7 +524,6 @@
         if (name) { const newId = 'deck_' + Date.now(); appData.decks[newId] = { id: newId, name: name, words: [] }; appData.activeDeckId = newId; saveData(); document.getElementById('new-deck-name').value = ''; renderDeckList(); }
     }
 
-    // ========== 設定 ==========
     const volInput = document.getElementById('setting-volume'); 
     const autoPlayInput = document.getElementById('setting-autoplay');
     const playModeInput = document.getElementById('setting-playmode');
