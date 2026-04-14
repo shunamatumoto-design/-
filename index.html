@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>俺の単語帳</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: #333; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .controls { display: flex; gap: 10px; font-size: 14px; }
+        #card-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; padding: 20px; }
+        .card { width: 100%; max-width: 350px; height: 350px; background: white; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 1.8em; font-weight: bold; text-align: center; cursor: pointer; position: absolute; transition: transform 0.3s ease, opacity 0.3s ease; user-select: none; padding: 20px; box-sizing: border-box; }
+        .english-ans { color: #e74c3c; font-size: 1.2em; margin-bottom: 10px; display: none; }
+        .speaker-icon { font-size: 1.5em; cursor: pointer; display: none; padding: 10px; }
+        .instruction { font-size: 0.4em; color: #888; position: absolute; bottom: 20px; }
+        
+        /* 手動追加セクション */
+        .input-section { padding: 10px 15px; background: white; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 40vh; }
+        .flex-row { display: flex; gap: 5px; }
+        input[type="text"], textarea { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+        button { padding: 10px 15px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn-green { background: #2ecc71; }
+        .section-title { font-size: 0.9em; font-weight: bold; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 5px; }
+        .hidden { display: none !important; }
+        #empty-msg { font-size: 1.2em; color: #666; }
+        #ocr-status { font-size: 0.8em; color: #e67e22; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <select id="mode-select">
+            <option value="all">すべて出題</option>
+            <option value="weak">苦手のみ出題</option>
+        </select>
+    </div>
+    <div class="controls">
+        <label><input type="checkbox" id="auto-play"> 音声自動</label>
+    </div>
+</header>
+
+<div id="card-container">
+    <div id="empty-msg" class="hidden">単語がありません！</div>
+    <div id="flashcard" class="card">
+        <div id="word-ja">日本語</div>
+        <div id="word-en" class="english-ans">English</div>
+        <div id="speaker" class="speaker-icon">🔊</div>
+        <div id="swipe-hint" class="instruction">タップして答えを表示</div>
+    </div>
+</div>
+
+<div class="input-section">
+    <div class="section-title">手動で追加</div>
+    <div class="flex-row">
+        <input type="text" id="input-ja" placeholder="日本語">
+        <input type="text" id="input-en" placeholder="英語">
+        <button id="add-btn">追加</button>
+    </div>
+
+    <div class="section-title">📷 写真から追加</div>
+    <input type="file" id="image-upload" accept="image/*" capture="environment">
+    <div id="ocr-status"></div>
+    <textarea id="ocr-result" rows="3" placeholder="ここに読み取った文字が出ます。&#10;「英語, 日本語」のようにカンマ区切りにしてから追加を押してください。&#10;（例: apple, りんご）"></textarea>
+    <button id="add-ocr-btn" class="btn-green">テキストから一括追加</button>
+</div>
+
+<script>
+    // --- 初期データ（写真の50単語） ---
+    const initialWords = [
+        {ja: "含む", en: "include", weak: false},
+        {ja: "部、売り場、省、局、学科", en: "department", weak: false},
+        {ja: "連絡する、連絡(先)、つて", en: "contact", weak: false},
+        {ja: "〜によれば、〜に従って", en: "according to", weak: false},
+        {ja: "顧客、取引先、クライアント", en: "client", weak: false},
+        {ja: "見直す、再検討、レビュー", en: "review", weak: false},
+        {ja: "示す、示唆する", en: "indicate", weak: false},
+        {ja: "出席する、対応する", en: "attend", weak: false},
+        {ja: "(一時的に)雇う、採用者", en: "hire", weak: false},
+        {ja: "地元の、地方の、地元の人", en: "local", weak: false},
+        {ja: "修理する、修繕", en: "repair", weak: false},
+        {ja: "記事、(同種の物の)1つ", en: "article", weak: false},
+        {ja: "更新する、最新情報", en: "update", weak: false},
+        {ja: "宣伝する、広告する", en: "advertise", weak: false},
+        {ja: "機器、装備", en: "equipment", weak: false},
+        {ja: "増える、増やす、増加", en: "increase", weak: false},
+        {ja: "空き、開業、初めの", en: "opening", weak: false},
+        {ja: "発送する、出荷する、船", en: "ship", weak: false},
+        {ja: "予期する、期待する", en: "expect", weak: false},
+        {ja: "最近", en: "recently", weak: false},
+        {ja: "とにかく、それはそうと", en: "anyway", weak: false},
+        {ja: "〜の後で、次の、下記の", en: "following", weak: false},
+        {ja: "参照する、言及する、紹介する", en: "refer", weak: false},
+        {ja: "従業員、社員", en: "employee", weak: false},
+        {ja: "申し出る、提供する、オファー", en: "offer", weak: false},
+        {ja: "おそらく、たぶん、ありそうな", en: "likely", weak: false},
+        {ja: "提供する、供給する", en: "provide", weak: false},
+        {ja: "入手できる、利用できる、都合がつく", en: "available", weak: false},
+        {ja: "(フォーマルな)会議", en: "conference", weak: false},
+        {ja: "購入する、購入(品)", en: "purchase", weak: false},
+        {ja: "配達(物)、話し方", en: "delivery", weak: false},
+        {ja: "用品、必需品、供給する", en: "supply", weak: false},
+        {ja: "呼び物にする、特集する、特徴", en: "feature", weak: false},
+        {ja: "必要とする、要求する", en: "require", weak: false},
+        {ja: "過程、プロセス、処理する", en: "process", weak: false},
+        {ja: "建設", en: "construction", weak: false},
+        {ja: "料金、責任、請求する", en: "charge", weak: false},
+        {ja: "材料、資料", en: "material", weak: false},
+        {ja: "アンケート調査", en: "survey", weak: false},
+        {ja: "提出する", en: "submit", weak: false},
+        {ja: "創造する、作り出す", en: "create", weak: false},
+        {ja: "予算、予算に組み込む、格安の", en: "budget", weak: false},
+        {ja: "予約、アポ、約束、任命、指名", en: "appointment", weak: false},
+        {ja: "追加の", en: "additional", weak: false},
+        {ja: "申込(用紙)、応募(書類)、応用、アプリ", en: "application", weak: false},
+        {ja: "生産、(映画や劇の)制作、作品", en: "production", weak: false},
+        {ja: "料金", en: "fee", weak: false},
+        {ja: "勧める、推薦する", en: "recommend", weak: false},
+        {ja: "賞、授与する", en: "award", weak: false},
+        {ja: "遅らせる、遅延", en: "delay", weak: false}
+    ];
+
+    let words = JSON.parse(localStorage.getItem('myWords'));
+    if (!words || words.length === 0) {
+        words = initialWords;
+        localStorage.setItem('myWords', JSON.stringify(words));
+    }
+
+    let currentDeck = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+
+    // --- DOM要素 ---
+    const card = document.getElementById('flashcard');
+    const wordJaEl = document.getElementById('word-ja');
+    const wordEnEl = document.getElementById('word-en');
+    const speakerEl = document.getElementById('speaker');
+    const hintEl = document.getElementById('swipe-hint');
+    const modeSelect = document.getElementById('mode-select');
+    const autoPlayCheck = document.getElementById('auto-play');
+    const emptyMsg = document.getElementById('empty-msg');
+    const ocrStatus = document.getElementById('ocr-status');
+
+    // --- 音声再生 ---
+    function playAudio(text) {
+        const uttr = new SpeechSynthesisUtterance(text);
+        uttr.lang = 'en-US';
+        speechSynthesis.cancel();
+        speechSynthesis.speak(uttr);
+    }
+
+    // --- 出題準備 ---
+    function initDeck() {
+        currentDeck = modeSelect.value === 'weak' ? words.filter(w => w.weak === true) : [...words];
+        currentDeck.sort(() => Math.random() - 0.5);
+        currentIndex = 0;
+        showCard();
+    }
+
+    function showCard() {
+        card.style.transform = 'translateX(0px)';
+        card.style.opacity = '1';
+        isFlipped = false;
+        wordEnEl.style.display = 'none';
+        speakerEl.style.display = 'none';
+        
+        if (currentDeck.length === 0 || currentIndex >= currentDeck.length) {
+            card.classList.add('hidden');
+            emptyMsg.classList.remove('hidden');
+            emptyMsg.innerText = currentDeck.length === 0 ? "このモードの単語がありません" : "1周終わりました！";
+            return;
+        }
+
+        card.classList.remove('hidden');
+        emptyMsg.classList.add('hidden');
+        wordJaEl.innerText = currentDeck[currentIndex].ja;
+        wordEnEl.innerText = currentDeck[currentIndex].en;
+        hintEl.innerText = "タップして答えを表示";
+    }
+
+    // --- カードのタップとスワイプ ---
+    card.addEventListener('click', (e) => {
+        if (e.target.id === 'speaker') return;
+        if (!isFlipped) {
+            isFlipped = true;
+            wordEnEl.style.display = 'block';
+            speakerEl.style.display = 'block';
+            hintEl.innerText = "← 左:ミス(苦手) / 右:正解(覚えた) →";
+            if (autoPlayCheck.checked) playAudio(currentDeck[currentIndex].en);
+        }
+    });
+
+    speakerEl.addEventListener('click', () => playAudio(currentDeck[currentIndex].en));
+
+    let startX = 0;
+    card.addEventListener('touchstart', e => startX = e.changedTouches[0].pageX);
+    card.addEventListener('touchend', e => {
+        if (!isFlipped) return;
+        let diffX = e.changedTouches[0].pageX - startX;
+        if (Math.abs(diffX) > 50) {
+            const currentWord = currentDeck[currentIndex];
+            const originalWord = words.find(w => w.en === currentWord.en && w.ja === currentWord.ja);
+            if (diffX > 0) {
+                originalWord.weak = false;
+                card.style.transform = 'translateX(100vw) rotate(15deg)';
+            } else {
+                originalWord.weak = true;
+                card.style.transform = 'translateX(-100vw) rotate(-15deg)';
+            }
+            card.style.opacity = '0';
+            localStorage.setItem('myWords', JSON.stringify(words));
+            setTimeout(() => { currentIndex++; showCard(); }, 300);
+        }
+    });
+
+    // --- 手動単語追加 ---
+    document.getElementById('add-btn').addEventListener('click', () => {
+        const ja = document.getElementById('input-ja').value.trim();
+        const en = document.getElementById('input-en').value.trim();
+        if (ja && en) {
+            words.push({ ja, en, weak: false });
+            localStorage.setItem('myWords', JSON.stringify(words));
+            document.getElementById('input-ja').value = '';
+            document.getElementById('input-en').value = '';
+            alert('追加しました！');
+            if (currentDeck.length === 0) initDeck();
+        }
+    });
+
+    // --- 画像認識（OCR）処理 ---
+    document.getElementById('image-upload').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        ocrStatus.innerText = "AIで画像を解析中... (数十秒かかることがあります)";
+        try {
+            const result = await Tesseract.recognize(file, 'eng+jpn', {
+                logger: m => {
+                    if(m.status === 'recognizing text') ocrStatus.innerText = `解析中... ${Math.round(m.progress * 100)}%`;
+                }
+            });
+            document.getElementById('ocr-result').value = result.data.text;
+            ocrStatus.innerText = "読み取り完了！形式を整えて追加してください。";
+        } catch(err) {
+            ocrStatus.innerText = "エラーが発生しました。もう一度試してください。";
+        }
+    });
+
+    // --- テキストから一括追加 ---
+    document.getElementById('add-ocr-btn').addEventListener('click', () => {
+        const text = document.getElementById('ocr-result').value;
+        const lines = text.split('\n');
+        let addedCount = 0;
+
+        lines.forEach(line => {
+            const parts = line.split(/[,\t]/); // カンマかタブで分割
+            if (parts.length >= 2) {
+                const en = parts[0].trim();
+                const ja = parts[1].trim();
+                if (en && ja) {
+                    words.push({ ja: ja, en: en, weak: false });
+                    addedCount++;
+                }
+            }
+        });
+
+        if (addedCount > 0) {
+            localStorage.setItem('myWords', JSON.stringify(words));
+            alert(`${addedCount}件の単語を一括追加しました！`);
+            document.getElementById('ocr-result').value = '';
+            initDeck();
+        } else {
+            alert("追加できる単語が見つかりませんでした。「英語, 日本語」の形式（カンマ区切り）になっているか確認してください。");
+        }
+    });
+
+    modeSelect.addEventListener('change', initDeck);
+    initDeck();
+</script>
+
+</body>
+</html>
