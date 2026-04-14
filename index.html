@@ -3,156 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>俺の単語帳</title>
+    <title>TOEIC対策英単語帳</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f9; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        header { background: #333; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .controls { display: flex; gap: 10px; font-size: 14px; }
-        #card-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; padding: 20px; }
-        .card { width: 100%; max-width: 350px; height: 350px; background: white; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 1.8em; font-weight: bold; text-align: center; cursor: pointer; position: absolute; transition: transform 0.3s ease, opacity 0.3s ease; user-select: none; padding: 20px; box-sizing: border-box; }
-        .english-ans { color: #e74c3c; font-size: 1.2em; margin-bottom: 10px; display: none; }
-        .speaker-icon { font-size: 1.5em; cursor: pointer; display: none; padding: 10px; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f3f8; margin: 0; padding: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; color: #333; }
+        .screen { display: none; flex-direction: column; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; background-color: #f0f3f8; }
+        .screen.active { display: flex; }
+        
+        header { background: #2c3e50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .back-btn { background: none; border: none; color: white; font-size: 16px; font-weight: bold; cursor: pointer; padding: 5px; }
+        .header-center { display: flex; flex-direction: column; align-items: center; }
+        .header-title { font-weight: bold; font-size: 18px; }
+        .header-sub { font-size: 0.8em; color: #a8e6cf; font-weight: bold; margin-top: 3px; }
+
+        #home-screen { justify-content: center; align-items: center; background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%); }
+        .game-title { font-size: 2.2em; font-weight: 900; color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); margin-bottom: 30px; letter-spacing: 1px; text-align: center; padding: 0 10px; }
+        .menu-btn { background: rgba(255, 255, 255, 0.9); color: #2c3e50; border: none; padding: 15px 30px; margin: 8px; border-radius: 30px; font-size: 1.1em; font-weight: bold; cursor: pointer; width: 250px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+        .menu-btn:active { transform: scale(0.95); }
+        .menu-btn.primary { background: #3498db; color: white; }
+        .menu-btn.warning { background: #e74c3c; color: white; }
+
+        .content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
+        
+        #card-container { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        .card { width: 100%; max-width: 350px; height: 350px; background: white; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 1.8em; font-weight: bold; text-align: center; cursor: pointer; position: absolute; transition: transform 0.3s ease, opacity 0.3s ease; user-select: none; padding: 20px; box-sizing: border-box; touch-action: none; }
+        .english-ans { color: #e74c3c; font-size: 1.2em; margin-bottom: 15px; display: none; }
+        
+        .audio-btn { background: #f39c12; color: white; border: none; padding: 10px 20px; border-radius: 25px; font-size: 0.6em; font-weight: bold; cursor: pointer; display: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .audio-btn:active { transform: scale(0.95); }
+        
         .instruction { font-size: 0.4em; color: #888; position: absolute; bottom: 20px; }
         
-        /* 手動追加セクション */
-        .input-section { padding: 10px 15px; background: white; border-top: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 40vh; }
-        .flex-row { display: flex; gap: 5px; }
-        input[type="text"], textarea { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
-        button { padding: 10px 15px; background: #3498db; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .btn-green { background: #2ecc71; }
-        .section-title { font-size: 0.9em; font-weight: bold; color: #333; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 5px; }
+        .section-box { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .section-title { font-size: 1.1em; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 5px; }
+        input[type="text"], textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+        button.action-btn { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        button.action-btn.green { background: #2ecc71; }
+        
+        .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
+        input[type="range"] { flex: 1; margin: 0 15px; }
+        .deck-item { padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .deck-item.active-deck { border-color: #3498db; background: #eaf5ff; border-width: 2px; }
+        
+        /* 編集リスト用のスタイル */
+        .edit-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
+        .edit-row input { flex: 1; padding: 8px; font-size: 14px; margin: 0; min-width: 0; } /* min-width:0でスマホでも潰れないように */
+        .del-btn { background: #e74c3c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        #edit-word-list { max-height: 40vh; overflow-y: auto; padding-right: 5px; }
+        
         .hidden { display: none !important; }
         #empty-msg { font-size: 1.2em; color: #666; }
-        #ocr-status { font-size: 0.8em; color: #e67e22; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<header>
-    <div>
-        <select id="mode-select">
-            <option value="all">すべて出題</option>
-            <option value="weak">苦手のみ出題</option>
-        </select>
-    </div>
-    <div class="controls">
-        <label><input type="checkbox" id="auto-play"> 音声自動</label>
-    </div>
-</header>
+<div id="home-screen" class="screen active">
+    <div class="game-title">TOEIC対策英単語帳</div>
+    <button class="menu-btn primary" onclick="navTo('study-all')">🎮 すべて出題</button>
+    <button class="menu-btn warning" onclick="navTo('study-weak')">💔 苦手モード</button>
+    <button class="menu-btn" onclick="navTo('add')">✏️ 単語を追加・編集</button>
+    <button class="menu-btn" onclick="navTo('deck')">📁 単語帳を作る</button>
+    <button class="menu-btn" onclick="navTo('settings')">⚙️ 設定</button>
+</div>
 
-<div id="card-container">
-    <div id="empty-msg" class="hidden">単語がありません！</div>
-    <div id="flashcard" class="card">
-        <div id="word-ja">日本語</div>
-        <div id="word-en" class="english-ans">English</div>
-        <div id="speaker" class="speaker-icon">🔊</div>
-        <div id="swipe-hint" class="instruction">タップして答えを表示</div>
+<div id="study-screen" class="screen">
+    <header>
+        <button class="back-btn" onclick="navTo('home')">◀ ホーム</button>
+        <div class="header-center">
+            <div class="header-title" id="study-title">すべて出題</div>
+            <div class="header-sub" id="remaining-count"></div>
+        </div>
+        <div style="width: 50px;"></div>
+    </header>
+    <div id="card-container">
+        <div id="empty-msg" class="hidden">単語がありません！</div>
+        <div id="flashcard" class="card">
+            <div id="word-ja">日本語</div>
+            <div id="word-en" class="english-ans">English</div>
+            <button id="speaker-btn" class="audio-btn">🔊 音声を聞く</button>
+            <div id="swipe-hint" class="instruction">PC:ドラッグ / スマホ:タッチしてスワイプ</div>
+        </div>
     </div>
 </div>
 
-<div class="input-section">
-    <div class="section-title">手動で追加</div>
-    <div class="flex-row">
-        <input type="text" id="input-ja" placeholder="日本語">
-        <input type="text" id="input-en" placeholder="英語">
-        <button id="add-btn">追加</button>
+<div id="add-screen" class="screen">
+    <header>
+        <button class="back-btn" onclick="navTo('home')">◀ ホーム</button>
+        <div class="header-title">単語を追加・編集</div>
+        <div style="width: 50px;"></div>
+    </header>
+    <div class="content">
+        <div class="section-box">
+            <div class="section-title">手動で追加</div>
+            <input type="text" id="input-ja" placeholder="日本語">
+            <input type="text" id="input-en" placeholder="英語">
+            <button class="action-btn" id="add-btn">追加</button>
+        </div>
+        <div class="section-box">
+            <div class="section-title">📷 写真から追加 (OCR)</div>
+            <input type="file" id="image-upload" accept="image/*" capture="environment" style="margin-bottom: 10px;">
+            <div id="ocr-status" style="font-size: 0.8em; color: #e67e22; margin-bottom: 5px;"></div>
+            <textarea id="ocr-result" rows="4" placeholder="ここに読み取った文字が出ます。&#10;英語, 日本語 の形式にして追加を押してください。"></textarea>
+            <button class="action-btn green" id="add-ocr-btn">テキストから一括追加</button>
+        </div>
+        <div class="section-box">
+            <div class="section-title">✏️ 単語の編集・削除</div>
+            <input type="text" id="edit-search" placeholder="🔍 英語か日本語で検索...">
+            <div id="edit-word-list">
+                </div>
+        </div>
     </div>
+</div>
 
-    <div class="section-title">📷 写真から追加</div>
-    <input type="file" id="image-upload" accept="image/*" capture="environment">
-    <div id="ocr-status"></div>
-    <textarea id="ocr-result" rows="3" placeholder="ここに読み取った文字が出ます。&#10;「英語, 日本語」のようにカンマ区切りにしてから追加を押してください。&#10;（例: apple, りんご）"></textarea>
-    <button id="add-ocr-btn" class="btn-green">テキストから一括追加</button>
+<div id="deck-screen" class="screen">
+    <header>
+        <button class="back-btn" onclick="navTo('home')">◀ ホーム</button>
+        <div class="header-title">単語帳の管理</div>
+        <div style="width: 50px;"></div>
+    </header>
+    <div class="content">
+        <div class="section-box">
+            <div class="section-title">新しい単語帳を作成</div>
+            <input type="text" id="new-deck-name" placeholder="例：金フレ 600点レベル">
+            <button class="action-btn" onclick="createNewDeck()">作成</button>
+        </div>
+        <div class="section-box">
+            <div class="section-title">単語帳を切り替える</div>
+            <div id="deck-list"></div>
+        </div>
+    </div>
+</div>
+
+<div id="settings-screen" class="screen">
+    <header>
+        <button class="back-btn" onclick="navTo('home')">◀ ホーム</button>
+        <div class="header-title">設定</div>
+        <div style="width: 50px;"></div>
+    </header>
+    <div class="content">
+        <div class="section-box">
+            <div class="setting-row" style="display: block;">
+                <div style="margin-bottom: 10px; font-weight: bold;">出題形式</div>
+                <select id="setting-playmode">
+                    <option value="once">1周モード（残りの単語数を表示）</option>
+                    <option value="random">完全ランダムモード（無限に出題）</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <span>自動音声再生</span>
+                <input type="checkbox" id="setting-autoplay" style="width: 20px; height: 20px;">
+            </div>
+            <div class="setting-row">
+                <span>音量</span>
+                <input type="range" id="setting-volume" min="0" max="1" step="0.1" value="1">
+                <span id="volume-val">100%</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    // --- 初期データ（写真の50単語） ---
     const initialWords = [
-        {ja: "含む", en: "include", weak: false},
-        {ja: "部、売り場、省、局、学科", en: "department", weak: false},
-        {ja: "連絡する、連絡(先)、つて", en: "contact", weak: false},
-        {ja: "〜によれば、〜に従って", en: "according to", weak: false},
-        {ja: "顧客、取引先、クライアント", en: "client", weak: false},
-        {ja: "見直す、再検討、レビュー", en: "review", weak: false},
-        {ja: "示す、示唆する", en: "indicate", weak: false},
-        {ja: "出席する、対応する", en: "attend", weak: false},
-        {ja: "(一時的に)雇う、採用者", en: "hire", weak: false},
-        {ja: "地元の、地方の、地元の人", en: "local", weak: false},
-        {ja: "修理する、修繕", en: "repair", weak: false},
-        {ja: "記事、(同種の物の)1つ", en: "article", weak: false},
-        {ja: "更新する、最新情報", en: "update", weak: false},
-        {ja: "宣伝する、広告する", en: "advertise", weak: false},
-        {ja: "機器、装備", en: "equipment", weak: false},
-        {ja: "増える、増やす、増加", en: "increase", weak: false},
-        {ja: "空き、開業、初めの", en: "opening", weak: false},
-        {ja: "発送する、出荷する、船", en: "ship", weak: false},
-        {ja: "予期する、期待する", en: "expect", weak: false},
-        {ja: "最近", en: "recently", weak: false},
-        {ja: "とにかく、それはそうと", en: "anyway", weak: false},
-        {ja: "〜の後で、次の、下記の", en: "following", weak: false},
-        {ja: "参照する、言及する、紹介する", en: "refer", weak: false},
-        {ja: "従業員、社員", en: "employee", weak: false},
-        {ja: "申し出る、提供する、オファー", en: "offer", weak: false},
-        {ja: "おそらく、たぶん、ありそうな", en: "likely", weak: false},
-        {ja: "提供する、供給する", en: "provide", weak: false},
-        {ja: "入手できる、利用できる、都合がつく", en: "available", weak: false},
-        {ja: "(フォーマルな)会議", en: "conference", weak: false},
-        {ja: "購入する、購入(品)", en: "purchase", weak: false},
-        {ja: "配達(物)、話し方", en: "delivery", weak: false},
-        {ja: "用品、必需品、供給する", en: "supply", weak: false},
-        {ja: "呼び物にする、特集する、特徴", en: "feature", weak: false},
-        {ja: "必要とする、要求する", en: "require", weak: false},
-        {ja: "過程、プロセス、処理する", en: "process", weak: false},
-        {ja: "建設", en: "construction", weak: false},
-        {ja: "料金、責任、請求する", en: "charge", weak: false},
-        {ja: "材料、資料", en: "material", weak: false},
-        {ja: "アンケート調査", en: "survey", weak: false},
-        {ja: "提出する", en: "submit", weak: false},
-        {ja: "創造する、作り出す", en: "create", weak: false},
-        {ja: "予算、予算に組み込む、格安の", en: "budget", weak: false},
-        {ja: "予約、アポ、約束、任命、指名", en: "appointment", weak: false},
-        {ja: "追加の", en: "additional", weak: false},
-        {ja: "申込(用紙)、応募(書類)、応用、アプリ", en: "application", weak: false},
-        {ja: "生産、(映画や劇の)制作、作品", en: "production", weak: false},
-        {ja: "料金", en: "fee", weak: false},
-        {ja: "勧める、推薦する", en: "recommend", weak: false},
-        {ja: "賞、授与する", en: "award", weak: false},
-        {ja: "遅らせる、遅延", en: "delay", weak: false}
+        {ja: "含む", en: "include", weak: false}, {ja: "部、売り場、省、局、学科", en: "department", weak: false},
+        {ja: "連絡する、連絡(先)、つて", en: "contact", weak: false}, {ja: "〜によれば、〜に従って", en: "according to", weak: false},
+        {ja: "顧客、取引先、クライアント", en: "client", weak: false}, {ja: "見直す、再検討、レビュー", en: "review", weak: false},
+        {ja: "示す、示唆する", en: "indicate", weak: false}, {ja: "出席する、対応する", en: "attend", weak: false},
+        {ja: "(一時的に)雇う、採用者", en: "hire", weak: false}, {ja: "地元の、地方の、地元の人", en: "local", weak: false},
+        {ja: "修理する、修繕", en: "repair", weak: false}, {ja: "記事、(同種の物の)1つ", en: "article", weak: false},
+        {ja: "更新する、最新情報", en: "update", weak: false}, {ja: "宣伝する、広告する", en: "advertise", weak: false},
+        {ja: "機器、装備", en: "equipment", weak: false}, {ja: "増える、増やす、増加", en: "increase", weak: false},
+        {ja: "空き、開業、初めの", en: "opening", weak: false}, {ja: "発送する、出荷する、船", en: "ship", weak: false},
+        {ja: "予期する、期待する", en: "expect", weak: false}, {ja: "最近", en: "recently", weak: false},
+        {ja: "とにかく、それはそうと", en: "anyway", weak: false}, {ja: "〜の後で、次の、下記の", en: "following", weak: false},
+        {ja: "参照する、言及する、紹介する", en: "refer", weak: false}, {ja: "従業員、社員", en: "employee", weak: false},
+        {ja: "申し出る、提供する、オファー", en: "offer", weak: false}, {ja: "おそらく、たぶん、ありそうな", en: "likely", weak: false},
+        {ja: "提供する、供給する", en: "provide", weak: false}, {ja: "入手できる、利用できる、都合がつく", en: "available", weak: false},
+        {ja: "(フォーマルな)会議", en: "conference", weak: false}, {ja: "購入する、購入(品)", en: "purchase", weak: false},
+        {ja: "配達(物)、話し方", en: "delivery", weak: false}, {ja: "用品、必需品、供給する", en: "supply", weak: false},
+        {ja: "呼び物にする、特集する、特徴", en: "feature", weak: false}, {ja: "必要とする、要求する", en: "require", weak: false},
+        {ja: "過程、プロセス、処理する", en: "process", weak: false}, {ja: "建設", en: "construction", weak: false},
+        {ja: "料金、責任、請求する", en: "charge", weak: false}, {ja: "材料、資料", en: "material", weak: false},
+        {ja: "アンケート調査", en: "survey", weak: false}, {ja: "提出する", en: "submit", weak: false},
+        {ja: "創造する、作り出す", en: "create", weak: false}, {ja: "予算、予算に組み込む、格安の", en: "budget", weak: false},
+        {ja: "予約、アポ、約束、任命、指名", en: "appointment", weak: false}, {ja: "追加の", en: "additional", weak: false},
+        {ja: "申込(用紙)、応募(書類)、応用、アプリ", en: "application", weak: false}, {ja: "生産、(映画や劇の)制作、作品", en: "production", weak: false},
+        {ja: "料金", en: "fee", weak: false}, {ja: "勧める、推薦する", en: "recommend", weak: false},
+        {ja: "賞、授与する", en: "award", weak: false}, {ja: "遅らせる、遅延", en: "delay", weak: false}
     ];
 
-    let words = JSON.parse(localStorage.getItem('myWords'));
-    if (!words || words.length === 0) {
-        words = initialWords;
-        localStorage.setItem('myWords', JSON.stringify(words));
+    let oldWords = JSON.parse(localStorage.getItem('myWords'));
+    let appData = JSON.parse(localStorage.getItem('myVocabApp_v2'));
+
+    if (!appData) {
+        appData = {
+            activeDeckId: 'deck_1',
+            decks: { 'deck_1': { id: 'deck_1', name: '基本の単語帳', words: oldWords ? oldWords : initialWords } },
+            settings: { volume: 1.0, autoPlay: false, playMode: 'once' }
+        };
+        saveData();
+    } else if (!appData.settings.playMode) {
+        appData.settings.playMode = 'once';
+        saveData();
     }
 
-    let currentDeck = [];
-    let currentIndex = 0;
-    let isFlipped = false;
+    function saveData() { localStorage.setItem('myVocabApp_v2', JSON.stringify(appData)); }
+    function getActiveWords() { return appData.decks[appData.activeDeckId].words; }
 
-    // --- DOM要素 ---
+    let currentStudyMode = 'all';
+
+    function navTo(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        
+        if (screenId === 'study-all' || screenId === 'study-weak') {
+            document.getElementById('study-screen').classList.add('active');
+            currentStudyMode = screenId === 'study-weak' ? 'weak' : 'all';
+            document.getElementById('study-title').innerText = currentStudyMode === 'weak' ? '苦手モード' : 'すべて出題';
+            initDeck();
+        } else {
+            document.getElementById(screenId + '-screen').classList.add('active');
+            if (screenId === 'deck') renderDeckList();
+            if (screenId === 'add') renderEditList(); // 編集画面に入った時にリストを更新
+        }
+    }
+
+    let currentDeck = [], currentIndex = 0, isFlipped = false;
     const card = document.getElementById('flashcard');
     const wordJaEl = document.getElementById('word-ja');
     const wordEnEl = document.getElementById('word-en');
-    const speakerEl = document.getElementById('speaker');
+    const speakerBtn = document.getElementById('speaker-btn');
     const hintEl = document.getElementById('swipe-hint');
-    const modeSelect = document.getElementById('mode-select');
-    const autoPlayCheck = document.getElementById('auto-play');
     const emptyMsg = document.getElementById('empty-msg');
-    const ocrStatus = document.getElementById('ocr-status');
+    const remainingCountEl = document.getElementById('remaining-count');
 
-    // --- 音声再生 ---
     function playAudio(text) {
         const uttr = new SpeechSynthesisUtterance(text);
         uttr.lang = 'en-US';
+        uttr.volume = appData.settings.volume;
         speechSynthesis.cancel();
         speechSynthesis.speak(uttr);
     }
 
-    // --- 出題準備 ---
     function initDeck() {
-        currentDeck = modeSelect.value === 'weak' ? words.filter(w => w.weak === true) : [...words];
+        const words = getActiveWords();
+        currentDeck = currentStudyMode === 'weak' ? words.filter(w => w.weak === true) : [...words];
         currentDeck.sort(() => Math.random() - 0.5);
         currentIndex = 0;
         showCard();
@@ -163,120 +256,223 @@
         card.style.opacity = '1';
         isFlipped = false;
         wordEnEl.style.display = 'none';
-        speakerEl.style.display = 'none';
+        speakerBtn.style.display = 'none';
         
-        if (currentDeck.length === 0 || currentIndex >= currentDeck.length) {
+        if (currentDeck.length === 0) {
             card.classList.add('hidden');
             emptyMsg.classList.remove('hidden');
-            emptyMsg.innerText = currentDeck.length === 0 ? "このモードの単語がありません" : "1周終わりました！";
+            emptyMsg.innerText = "このモードの単語がありません";
+            remainingCountEl.innerText = "";
             return;
+        }
+
+        if (appData.settings.playMode === 'once') {
+            if (currentIndex >= currentDeck.length) {
+                card.classList.add('hidden');
+                emptyMsg.classList.remove('hidden');
+                emptyMsg.innerText = "1周終わりました！";
+                remainingCountEl.innerText = "残り: 0 単語";
+                return;
+            }
+            remainingCountEl.innerText = `残り: ${currentDeck.length - currentIndex} 単語`;
+        } else {
+            remainingCountEl.innerText = "∞ ランダムモード";
         }
 
         card.classList.remove('hidden');
         emptyMsg.classList.add('hidden');
         wordJaEl.innerText = currentDeck[currentIndex].ja;
         wordEnEl.innerText = currentDeck[currentIndex].en;
-        hintEl.innerText = "タップして答えを表示";
+        hintEl.innerText = "タッチまたはクリックして答えを表示";
     }
 
-    // --- カードのタップとスワイプ ---
-    card.addEventListener('click', (e) => {
-        if (e.target.id === 'speaker') return;
-        if (!isFlipped) {
-            isFlipped = true;
-            wordEnEl.style.display = 'block';
-            speakerEl.style.display = 'block';
-            hintEl.innerText = "← 左:ミス(苦手) / 右:正解(覚えた) →";
-            if (autoPlayCheck.checked) playAudio(currentDeck[currentIndex].en);
-        }
+    function flipCard() {
+        if (isFlipped) return;
+        isFlipped = true;
+        wordEnEl.style.display = 'block';
+        speakerBtn.style.display = 'inline-block';
+        hintEl.innerText = "← 左:ミス(苦手) / 右:正解(覚えた) →";
+        if (appData.settings.autoPlay) playAudio(currentDeck[currentIndex].en);
+    }
+
+    let startX = 0, isDragging = false;
+    
+    card.addEventListener('pointerdown', e => {
+        if (e.target.id === 'speaker-btn') return;
+        flipCard();
+        startX = e.pageX;
+        isDragging = true;
+        card.setPointerCapture(e.pointerId);
     });
 
-    speakerEl.addEventListener('click', () => playAudio(currentDeck[currentIndex].en));
+    speakerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        playAudio(currentDeck[currentIndex].en);
+    });
+    speakerBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
 
-    let startX = 0;
-    card.addEventListener('touchstart', e => startX = e.changedTouches[0].pageX);
-    card.addEventListener('touchend', e => {
+    function handleSwipe(direction) {
         if (!isFlipped) return;
-        let diffX = e.changedTouches[0].pageX - startX;
-        if (Math.abs(diffX) > 50) {
-            const currentWord = currentDeck[currentIndex];
-            const originalWord = words.find(w => w.en === currentWord.en && w.ja === currentWord.ja);
-            if (diffX > 0) {
-                originalWord.weak = false;
-                card.style.transform = 'translateX(100vw) rotate(15deg)';
-            } else {
-                originalWord.weak = true;
-                card.style.transform = 'translateX(-100vw) rotate(-15deg)';
-            }
-            card.style.opacity = '0';
-            localStorage.setItem('myWords', JSON.stringify(words));
-            setTimeout(() => { currentIndex++; showCard(); }, 300);
+        const currentWord = currentDeck[currentIndex];
+        const activeWords = getActiveWords();
+        const originalWord = activeWords.find(w => w.en === currentWord.en && w.ja === currentWord.ja);
+        
+        if (direction === 'right') {
+            originalWord.weak = false;
+            card.style.transform = 'translateX(100vw) rotate(15deg)';
+        } else {
+            originalWord.weak = true;
+            card.style.transform = 'translateX(-100vw) rotate(-15deg)';
         }
+        
+        card.style.opacity = '0';
+        saveData();
+        
+        setTimeout(() => {
+            if (appData.settings.playMode === 'once') {
+                currentIndex++;
+            } else {
+                currentIndex = Math.floor(Math.random() * currentDeck.length);
+            }
+            showCard();
+        }, 300);
+    }
+
+    card.addEventListener('pointerup', e => {
+        if (!isDragging || !isFlipped) return;
+        isDragging = false;
+        let diffX = e.pageX - startX;
+        if (diffX > 50) handleSwipe('right');
+        else if (diffX < -50) handleSwipe('left');
+    });
+    card.addEventListener('pointercancel', () => isDragging = false);
+
+    document.addEventListener('keydown', (e) => {
+        if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'SELECT') return;
+        if (document.getElementById('study-screen').classList.contains('active') === false) return;
+        if (card.classList.contains('hidden')) return;
+
+        if (e.code === 'Space' || e.code === 'Enter') { 
+            e.preventDefault(); 
+            flipCard(); 
+        }
+        else if (e.code === 'ArrowRight' && isFlipped) handleSwipe('right');
+        else if (e.code === 'ArrowLeft' && isFlipped) handleSwipe('left');
     });
 
-    // --- 手動単語追加 ---
+    // ========== 編集・追加機能 ==========
     document.getElementById('add-btn').addEventListener('click', () => {
         const ja = document.getElementById('input-ja').value.trim();
         const en = document.getElementById('input-en').value.trim();
-        if (ja && en) {
-            words.push({ ja, en, weak: false });
-            localStorage.setItem('myWords', JSON.stringify(words));
-            document.getElementById('input-ja').value = '';
-            document.getElementById('input-en').value = '';
-            alert('追加しました！');
-            if (currentDeck.length === 0) initDeck();
+        if (ja && en) { 
+            getActiveWords().unshift({ ja, en, weak: false }); // 一番上に追加
+            saveData(); 
+            document.getElementById('input-ja').value = ''; 
+            document.getElementById('input-en').value = ''; 
+            alert('追加しました！'); 
+            renderEditList(); // リストを更新
         }
     });
 
-    // --- 画像認識（OCR）処理 ---
     document.getElementById('image-upload').addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        ocrStatus.innerText = "AIで画像を解析中... (数十秒かかることがあります)";
+        const file = e.target.files[0]; if (!file) return;
+        const ocrStatus = document.getElementById('ocr-status'); ocrStatus.innerText = "解析中...";
         try {
-            const result = await Tesseract.recognize(file, 'eng+jpn', {
-                logger: m => {
-                    if(m.status === 'recognizing text') ocrStatus.innerText = `解析中... ${Math.round(m.progress * 100)}%`;
-                }
-            });
-            document.getElementById('ocr-result').value = result.data.text;
-            ocrStatus.innerText = "読み取り完了！形式を整えて追加してください。";
-        } catch(err) {
-            ocrStatus.innerText = "エラーが発生しました。もう一度試してください。";
-        }
+            const result = await Tesseract.recognize(file, 'eng+jpn', { logger: m => { if(m.status === 'recognizing text') ocrStatus.innerText = `解析中... ${Math.round(m.progress * 100)}%`; } });
+            document.getElementById('ocr-result').value = result.data.text; ocrStatus.innerText = "完了！形式を整えて追加してください。";
+        } catch(err) { ocrStatus.innerText = "エラーが発生しました。"; }
     });
 
-    // --- テキストから一括追加 ---
     document.getElementById('add-ocr-btn').addEventListener('click', () => {
-        const text = document.getElementById('ocr-result').value;
-        const lines = text.split('\n');
-        let addedCount = 0;
-
-        lines.forEach(line => {
-            const parts = line.split(/[,\t]/); // カンマかタブで分割
-            if (parts.length >= 2) {
-                const en = parts[0].trim();
-                const ja = parts[1].trim();
-                if (en && ja) {
-                    words.push({ ja: ja, en: en, weak: false });
-                    addedCount++;
-                }
-            }
-        });
-
-        if (addedCount > 0) {
-            localStorage.setItem('myWords', JSON.stringify(words));
-            alert(`${addedCount}件の単語を一括追加しました！`);
-            document.getElementById('ocr-result').value = '';
-            initDeck();
-        } else {
-            alert("追加できる単語が見つかりませんでした。「英語, 日本語」の形式（カンマ区切り）になっているか確認してください。");
-        }
+        const text = document.getElementById('ocr-result').value; const lines = text.split('\n'); let addedCount = 0;
+        // 逆順に追加して、リストの上に新しいものが来るようにする
+        lines.reverse().forEach(line => { const parts = line.split(/[,\t]/); if (parts.length >= 2) { const en = parts[0].trim(); const ja = parts[1].trim(); if (en && ja) { getActiveWords().unshift({ ja, en, weak: false }); addedCount++; } } });
+        if (addedCount > 0) { saveData(); alert(`${addedCount}件追加しました！`); document.getElementById('ocr-result').value = ''; renderEditList(); } else { alert("形式を確認してください。"); }
     });
 
-    modeSelect.addEventListener('change', initDeck);
-    initDeck();
-</script>
+    // リストの描画と編集・削除処理
+    function renderEditList(filterText = '') {
+        const listEl = document.getElementById('edit-word-list');
+        listEl.innerHTML = '';
+        const words = getActiveWords();
+        
+        words.forEach((word, index) => {
+            // 検索フィルター
+            if (filterText && !word.ja.includes(filterText) && !word.en.toLowerCase().includes(filterText.toLowerCase())) {
+                return;
+            }
+            
+            const div = document.createElement('div');
+            div.className = 'edit-row';
+            
+            // 英語入力ボックス
+            const enInput = document.createElement('input');
+            enInput.type = 'text';
+            enInput.value = word.en;
+            enInput.placeholder = "英語";
+            enInput.onchange = (e) => { word.en = e.target.value.trim(); saveData(); };
+            
+            // 日本語入力ボックス
+            const jaInput = document.createElement('input');
+            jaInput.type = 'text';
+            jaInput.value = word.ja;
+            jaInput.placeholder = "日本語";
+            jaInput.onchange = (e) => { word.ja = e.target.value.trim(); saveData(); };
+            
+            // 削除ボタン
+            const delBtn = document.createElement('button');
+            delBtn.className = 'del-btn';
+            delBtn.innerText = '🗑️';
+            delBtn.onclick = () => {
+                if (confirm(`「${word.en}」を削除してもよろしいですか？`)) {
+                    words.splice(index, 1);
+                    saveData();
+                    renderEditList(document.getElementById('edit-search').value);
+                }
+            };
+            
+            div.appendChild(enInput);
+            div.appendChild(jaInput);
+            div.appendChild(delBtn);
+            listEl.appendChild(div);
+        });
+    }
 
+    // 検索バーの入力イベント
+    document.getElementById('edit-search').addEventListener('input', (e) => {
+        renderEditList(e.target.value);
+    });
+
+    // ========== 単語帳管理 ==========
+    function renderDeckList() {
+        const listEl = document.getElementById('deck-list'); listEl.innerHTML = '';
+        Object.values(appData.decks).forEach(deck => {
+            const div = document.createElement('div');
+            div.className = `deck-item ${appData.activeDeckId === deck.id ? 'active-deck' : ''}`;
+            div.innerHTML = `<div><strong>${deck.name}</strong> <br><small>${deck.words.length} 単語</small></div>`;
+            div.onclick = () => { appData.activeDeckId = deck.id; saveData(); renderDeckList(); };
+            listEl.appendChild(div);
+        });
+    }
+
+    function createNewDeck() {
+        const name = document.getElementById('new-deck-name').value.trim();
+        if (name) { const newId = 'deck_' + Date.now(); appData.decks[newId] = { id: newId, name: name, words: [] }; appData.activeDeckId = newId; saveData(); document.getElementById('new-deck-name').value = ''; renderDeckList(); }
+    }
+
+    // ========== 設定 ==========
+    const volInput = document.getElementById('setting-volume'); 
+    const autoPlayInput = document.getElementById('setting-autoplay');
+    const playModeInput = document.getElementById('setting-playmode');
+    
+    volInput.value = appData.settings.volume; 
+    document.getElementById('volume-val').innerText = Math.round(appData.settings.volume * 100) + '%';
+    autoPlayInput.checked = appData.settings.autoPlay;
+    playModeInput.value = appData.settings.playMode;
+
+    volInput.addEventListener('input', (e) => { appData.settings.volume = parseFloat(e.target.value); document.getElementById('volume-val').innerText = Math.round(appData.settings.volume * 100) + '%'; saveData(); });
+    autoPlayInput.addEventListener('change', (e) => { appData.settings.autoPlay = e.target.checked; saveData(); });
+    playModeInput.addEventListener('change', (e) => { appData.settings.playMode = e.target.value; saveData(); });
+</script>
 </body>
 </html>
