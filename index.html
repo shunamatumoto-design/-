@@ -39,15 +39,15 @@
         input[type="text"], textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
         button.action-btn { width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 5px; }
         button.action-btn.green { background: #2ecc71; }
+        button.action-btn.purple { background: #9b59b6; } /* フィルターボタン用 */
         
         .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; }
         input[type="range"] { flex: 1; margin: 0 15px; }
         .deck-item { padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .deck-item.active-deck { border-color: #3498db; background: #eaf5ff; border-width: 2px; }
         
-        /* 編集リスト用のスタイル */
         .edit-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #eee; }
-        .edit-row input { flex: 1; padding: 8px; font-size: 14px; margin: 0; min-width: 0; } /* min-width:0でスマホでも潰れないように */
+        .edit-row input { flex: 1; padding: 8px; font-size: 14px; margin: 0; min-width: 0; }
         .del-btn { background: #e74c3c; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         #edit-word-list { max-height: 40vh; overflow-y: auto; padding-right: 5px; }
         
@@ -103,14 +103,16 @@
             <div class="section-title">📷 写真から追加 (OCR)</div>
             <input type="file" id="image-upload" accept="image/*" capture="environment" style="margin-bottom: 10px;">
             <div id="ocr-status" style="font-size: 0.8em; color: #e67e22; margin-bottom: 5px;"></div>
-            <textarea id="ocr-result" rows="4" placeholder="ここに読み取った文字が出ます。&#10;英語, 日本語 の形式にして追加を押してください。"></textarea>
-            <button class="action-btn green" id="add-ocr-btn">テキストから一括追加</button>
+            <textarea id="ocr-result" rows="5" placeholder="ここに読み取った文字が出ます。"></textarea>
+            
+            <button class="action-btn purple" id="filter-btn">🧹 金フレ専用フィルター（英単語と意味だけ抽出）</button>
+            
+            <button class="action-btn green" id="add-ocr-btn" style="margin-top: 15px;">テキストから一括追加</button>
         </div>
         <div class="section-box">
             <div class="section-title">✏️ 単語の編集・削除</div>
             <input type="text" id="edit-search" placeholder="🔍 英語か日本語で検索...">
-            <div id="edit-word-list">
-                </div>
+            <div id="edit-word-list"></div>
         </div>
     </div>
 </div>
@@ -142,6 +144,11 @@
     </header>
     <div class="content">
         <div class="section-box">
+            <div class="setting-row" style="display: block; margin-bottom: 15px;">
+                <div style="margin-bottom: 5px; font-weight: bold;">音声の種類（ネイティブ発音を選択）</div>
+                <select id="setting-voice"></select>
+                <div style="font-size: 0.8em; color: #7f8c8d; margin-top: 5px;">※スマホで発音がおかしい場合は、ここから「Samantha」や「Google US English」などに変更してください。</div>
+            </div>
             <div class="setting-row" style="display: block;">
                 <div style="margin-bottom: 10px; font-weight: bold;">出題形式</div>
                 <select id="setting-playmode">
@@ -198,16 +205,34 @@
         appData = {
             activeDeckId: 'deck_1',
             decks: { 'deck_1': { id: 'deck_1', name: '基本の単語帳', words: oldWords ? oldWords : initialWords } },
-            settings: { volume: 1.0, autoPlay: false, playMode: 'once' }
+            settings: { volume: 1.0, autoPlay: false, playMode: 'once', voiceURI: '' }
         };
         saveData();
     } else if (!appData.settings.playMode) {
-        appData.settings.playMode = 'once';
+        appData.settings.playMode = 'once'; appData.settings.voiceURI = '';
         saveData();
     }
 
     function saveData() { localStorage.setItem('myVocabApp_v2', JSON.stringify(appData)); }
     function getActiveWords() { return appData.decks[appData.activeDeckId].words; }
+
+    // 音声リストの取得と設定
+    let voices = [];
+    function populateVoiceList() {
+        voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+        const voiceSelect = document.getElementById('setting-voice');
+        voiceSelect.innerHTML = '<option value="">デフォルト（自動）</option>';
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.voiceURI;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            if(appData.settings.voiceURI === voice.voiceURI) option.selected = true;
+            voiceSelect.appendChild(option);
+        });
+    }
+    // ブラウザによって音声の読み込みタイミングが違うため
+    speechSynthesis.onvoiceschanged = populateVoiceList;
+    setTimeout(populateVoiceList, 500);
 
     let currentStudyMode = 'all';
 
@@ -222,7 +247,8 @@
         } else {
             document.getElementById(screenId + '-screen').classList.add('active');
             if (screenId === 'deck') renderDeckList();
-            if (screenId === 'add') renderEditList(); // 編集画面に入った時にリストを更新
+            if (screenId === 'add') renderEditList();
+            if (screenId === 'settings') populateVoiceList(); // 設定を開くたびにリスト更新
         }
     }
 
@@ -239,6 +265,11 @@
         const uttr = new SpeechSynthesisUtterance(text);
         uttr.lang = 'en-US';
         uttr.volume = appData.settings.volume;
+        // 設定で選んだ音声があればそれを適用
+        if(appData.settings.voiceURI && voices.length > 0) {
+            const selectedVoice = voices.find(v => v.voiceURI === appData.settings.voiceURI);
+            if(selectedVoice) uttr.voice = selectedVoice;
+        }
         speechSynthesis.cancel();
         speechSynthesis.speak(uttr);
     }
@@ -365,12 +396,12 @@
         const ja = document.getElementById('input-ja').value.trim();
         const en = document.getElementById('input-en').value.trim();
         if (ja && en) { 
-            getActiveWords().unshift({ ja, en, weak: false }); // 一番上に追加
+            getActiveWords().unshift({ ja, en, weak: false });
             saveData(); 
             document.getElementById('input-ja').value = ''; 
             document.getElementById('input-en').value = ''; 
             alert('追加しました！'); 
-            renderEditList(); // リストを更新
+            renderEditList(); 
         }
     });
 
@@ -379,69 +410,69 @@
         const ocrStatus = document.getElementById('ocr-status'); ocrStatus.innerText = "解析中...";
         try {
             const result = await Tesseract.recognize(file, 'eng+jpn', { logger: m => { if(m.status === 'recognizing text') ocrStatus.innerText = `解析中... ${Math.round(m.progress * 100)}%`; } });
-            document.getElementById('ocr-result').value = result.data.text; ocrStatus.innerText = "完了！形式を整えて追加してください。";
+            document.getElementById('ocr-result').value = result.data.text; ocrStatus.innerText = "完了！そのまま追加するか、フィルターボタンで整理してください。";
         } catch(err) { ocrStatus.innerText = "エラーが発生しました。"; }
+    });
+
+    // ★新機能：金フレ専用フィルターのロジック★
+    document.getElementById('filter-btn').addEventListener('click', () => {
+        const rawText = document.getElementById('ocr-result').value;
+        if(!rawText) { alert('先に写真を読み込んでください！'); return; }
+        
+        const lines = rawText.split('\n');
+        let formattedLines = [];
+
+        lines.forEach(line => {
+            // 発音記号 [ ] やカッコ ( ) などを削除してスッキリさせる
+            let cleaned = line.replace(/\[.*?\]/g, '').replace(/\(.*?\)/g, '').trim();
+
+            // 行の先頭が英単語（スペース含む）で、その後に日本語（漢字やひらがな）が続くパターンを探す
+            const match = cleaned.match(/^([a-zA-Z\-\s]+)[\s・]*([\u3040-\u30FF\u4E00-\u9FFF]+.*)$/);
+            
+            if (match) {
+                let en = match[1].trim();
+                let ja = match[2].trim();
+                
+                // 英単語が3単語以内の場合だけ抽出（長い例文などを弾くため）
+                if (en.length > 0 && en.split(' ').length <= 3) {
+                    // 日本語の意味部分から、例文や関連語の情報を簡易的にカットする
+                    // 「例」「反」「関」「類」などの記号以降をバッサリ切る
+                    let shortJa = ja.split(/[。例反類関]/)[0].trim();
+                    if(shortJa.length > 0) {
+                        formattedLines.push(`${en}, ${shortJa}`);
+                    }
+                }
+            }
+        });
+
+        if(formattedLines.length > 0) {
+            document.getElementById('ocr-result').value = formattedLines.join('\n');
+            alert('抽出に成功しました！変な所があれば手で直して、「一括追加」を押してください。');
+        } else {
+            alert('上手く抽出できませんでした。手動で直すか、写真の撮り方を変えてみてください。');
+        }
     });
 
     document.getElementById('add-ocr-btn').addEventListener('click', () => {
         const text = document.getElementById('ocr-result').value; const lines = text.split('\n'); let addedCount = 0;
-        // 逆順に追加して、リストの上に新しいものが来るようにする
         lines.reverse().forEach(line => { const parts = line.split(/[,\t]/); if (parts.length >= 2) { const en = parts[0].trim(); const ja = parts[1].trim(); if (en && ja) { getActiveWords().unshift({ ja, en, weak: false }); addedCount++; } } });
-        if (addedCount > 0) { saveData(); alert(`${addedCount}件追加しました！`); document.getElementById('ocr-result').value = ''; renderEditList(); } else { alert("形式を確認してください。"); }
+        if (addedCount > 0) { saveData(); alert(`${addedCount}件追加しました！`); document.getElementById('ocr-result').value = ''; renderEditList(); } else { alert("「英語, 日本語」の形式になっているか確認してください。"); }
     });
 
-    // リストの描画と編集・削除処理
     function renderEditList(filterText = '') {
-        const listEl = document.getElementById('edit-word-list');
-        listEl.innerHTML = '';
-        const words = getActiveWords();
-        
+        const listEl = document.getElementById('edit-word-list'); listEl.innerHTML = ''; const words = getActiveWords();
         words.forEach((word, index) => {
-            // 検索フィルター
-            if (filterText && !word.ja.includes(filterText) && !word.en.toLowerCase().includes(filterText.toLowerCase())) {
-                return;
-            }
-            
-            const div = document.createElement('div');
-            div.className = 'edit-row';
-            
-            // 英語入力ボックス
-            const enInput = document.createElement('input');
-            enInput.type = 'text';
-            enInput.value = word.en;
-            enInput.placeholder = "英語";
-            enInput.onchange = (e) => { word.en = e.target.value.trim(); saveData(); };
-            
-            // 日本語入力ボックス
-            const jaInput = document.createElement('input');
-            jaInput.type = 'text';
-            jaInput.value = word.ja;
-            jaInput.placeholder = "日本語";
-            jaInput.onchange = (e) => { word.ja = e.target.value.trim(); saveData(); };
-            
-            // 削除ボタン
-            const delBtn = document.createElement('button');
-            delBtn.className = 'del-btn';
-            delBtn.innerText = '🗑️';
-            delBtn.onclick = () => {
-                if (confirm(`「${word.en}」を削除してもよろしいですか？`)) {
-                    words.splice(index, 1);
-                    saveData();
-                    renderEditList(document.getElementById('edit-search').value);
-                }
-            };
-            
-            div.appendChild(enInput);
-            div.appendChild(jaInput);
-            div.appendChild(delBtn);
-            listEl.appendChild(div);
+            if (filterText && !word.ja.includes(filterText) && !word.en.toLowerCase().includes(filterText.toLowerCase())) return;
+            const div = document.createElement('div'); div.className = 'edit-row';
+            const enInput = document.createElement('input'); enInput.type = 'text'; enInput.value = word.en; enInput.placeholder = "英語"; enInput.onchange = (e) => { word.en = e.target.value.trim(); saveData(); };
+            const jaInput = document.createElement('input'); jaInput.type = 'text'; jaInput.value = word.ja; jaInput.placeholder = "日本語"; jaInput.onchange = (e) => { word.ja = e.target.value.trim(); saveData(); };
+            const delBtn = document.createElement('button'); delBtn.className = 'del-btn'; delBtn.innerText = '🗑️';
+            delBtn.onclick = () => { if (confirm(`「${word.en}」を削除しますか？`)) { words.splice(index, 1); saveData(); renderEditList(document.getElementById('edit-search').value); } };
+            div.appendChild(enInput); div.appendChild(jaInput); div.appendChild(delBtn); listEl.appendChild(div);
         });
     }
 
-    // 検索バーの入力イベント
-    document.getElementById('edit-search').addEventListener('input', (e) => {
-        renderEditList(e.target.value);
-    });
+    document.getElementById('edit-search').addEventListener('input', (e) => { renderEditList(e.target.value); });
 
     // ========== 単語帳管理 ==========
     function renderDeckList() {
@@ -464,6 +495,7 @@
     const volInput = document.getElementById('setting-volume'); 
     const autoPlayInput = document.getElementById('setting-autoplay');
     const playModeInput = document.getElementById('setting-playmode');
+    const voiceInput = document.getElementById('setting-voice');
     
     volInput.value = appData.settings.volume; 
     document.getElementById('volume-val').innerText = Math.round(appData.settings.volume * 100) + '%';
@@ -473,6 +505,7 @@
     volInput.addEventListener('input', (e) => { appData.settings.volume = parseFloat(e.target.value); document.getElementById('volume-val').innerText = Math.round(appData.settings.volume * 100) + '%'; saveData(); });
     autoPlayInput.addEventListener('change', (e) => { appData.settings.autoPlay = e.target.checked; saveData(); });
     playModeInput.addEventListener('change', (e) => { appData.settings.playMode = e.target.value; saveData(); });
+    voiceInput.addEventListener('change', (e) => { appData.settings.voiceURI = e.target.value; saveData(); });
 </script>
 </body>
 </html>
