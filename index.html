@@ -162,62 +162,22 @@
         
         <div class="section-box" style="border: 2px solid #ffcccc;">
             <div class="section-title" style="color: #e74c3c;">⚠️ 危険な操作</div>
-            <div style="font-size: 0.85em; color: #555; margin-bottom: 10px;">追加した単語や学習データを全て消去し、最初の250単語のみの状態に戻します。</div>
-            <button class="action-btn danger" onclick="factoryReset()">アプリを初期化する（250単語に戻す）</button>
+            <div style="font-size: 0.85em; color: #555; margin-bottom: 10px;">追加した単語や学習データを全て消去し、完全に0単語の初期状態に戻します。</div>
+            <button class="action-btn danger" onclick="factoryReset()">アプリを初期化する（0単語に戻す）</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ベースデータ250単語（重複なし）
-    const initialWords = [
-        {ja: "含む", en: "include", weak: false}, {ja: "部、売り場、省、局、学科", en: "department", weak: false}, {ja: "連絡する、連絡(先)、つて", en: "contact", weak: false}, {ja: "〜によれば、〜に従って", en: "according to", weak: false}, {ja: "顧客、取引先、クライアント", en: "client", weak: false}, {ja: "見直す、再検討、レビュー", en: "review", weak: false}, {ja: "示す、示唆する", en: "indicate", weak: false}, {ja: "出席する、対応する", en: "attend", weak: false}, {ja: "(一時的に)雇う、採用者", en: "hire", weak: false}, {ja: "地元の、地方の、地元の人", en: "local", weak: false},
-        {ja: "修理する、修繕", en: "repair", weak: false}, {ja: "記事、(同種の物の)1つ", en: "article", weak: false}, {ja: "更新する、最新情報", en: "update", weak: false}, {ja: "宣伝する、広告する", en: "advertise", weak: false}, {ja: "機器、装備", en: "equipment", weak: false}, {ja: "増える、増やす、増加", en: "increase", weak: false}, {ja: "空き、開業、初めの", en: "opening", weak: false}, {ja: "発送する、出荷する、船", en: "ship", weak: false}, {ja: "予期する、期待する", en: "expect", weak: false}, {ja: "最近", en: "recently", weak: false},
-        {ja: "とにかく、それはそうと", en: "anyway", weak: false}, {ja: "〜の後で、次の、下記の", en: "following", weak: false}, {ja: "参照する、言及する、紹介する", en: "refer", weak: false}, {ja: "従業員、社員", en: "employee", weak: false}, {ja: "申し出る、提供する、オファー", en: "offer", weak: false}, {ja: "おそらく、たぶん、ありそうな", en: "likely", weak: false}, {ja: "提供する、供給する", en: "provide", weak: false}, {ja: "入手できる、利用できる、都合がつく", en: "available", weak: false}, {ja: "(フォーマルな)会議", en: "conference", weak: false}, {ja: "購入する、購入(品)", en: "purchase", weak: false},
-        {ja: "配達(物)、話し方", en: "delivery", weak: false}, {ja: "用品、必需品、供給する", en: "supply", weak: false}, {ja: "呼び物にする、特集する、特徴", en: "feature", weak: false}, {ja: "必要とする、要求する", en: "require", weak: false}, {ja: "過程、プロセス、処理する", en: "process", weak: false}, {ja: "建設", en: "construction", weak: false}, {ja: "料金、責任、請求する", en: "charge", weak: false}, {ja: "材料、資料", en: "material", weak: false}, {ja: "アンケート調査", en: "survey", weak: false}, {ja: "提出する", en: "submit", weak: false},
-        {ja: "創造する、作り出す", en: "create", weak: false}, {ja: "予算、予算に組み込む、格安の", en: "budget", weak: false}, {ja: "予約、アポ、約束、任命、指名", en: "appointment", weak: false}, {ja: "追加の", en: "additional", weak: false}, {ja: "申込(用紙)、応募(書類)、応用、アプリ", en: "application", weak: false}, {ja: "生産、(映画や劇の)制作、作品", en: "production", weak: false}, {ja: "料金", en: "fee", weak: false}, {ja: "勧める、推薦する", en: "recommend", weak: false}, {ja: "賞、授与する", en: "award", weak: false}, {ja: "遅らせる、遅延", en: "delay", weak: false},
-        {ja: "確認する", en: "confirm", weak: false}, {ja: "注意する、述べる、気づく、メモ、注(釈)", en: "note", weak: false}, {ja: "小包、パッケージ、(容器に)詰める", en: "package", weak: false}, {ja: "文書、書類、記録する", en: "document", weak: false}, {ja: "郵便(物)、郵送する", en: "mail", weak: false}, {ja: "追加の、余分の、余分に、余分のもの", en: "extra", weak: false}, {ja: "事務所、会社、堅い、確実な", en: "firm", weak: false}, {ja: "出版する、掲載する、公表する", en: "publish", weak: false}, {ja: "位置している、(場所に)ある", en: "located", weak: false}, {ja: "放送する、放送(番組)", en: "broadcast", weak: false},
-        {ja: "手配する、(きちんと)並べる", en: "arrange", weak: false}, {ja: "減らす、(価格などを)下げる", en: "reduce", weak: false}, {ja: "取り換える、取って代わる、後任となる", en: "replace", weak: false}, {ja: "登録する、(不満などを)述べる、レジ、登録簿", en: "register", weak: false}, {ja: "集中する、重点を置く、焦点、中心", en: "focus", weak: false}, {ja: "提案、案", en: "proposal", weak: false}, {ja: "紹介する、導入する", en: "introduce", weak: false}, {ja: "(〜の方を)好む", en: "prefer", weak: false}, {ja: "昇進させる、販売を促進する、促進する", en: "promote", weak: false}, {ja: "機会、チャンス", en: "opportunity", weak: false},
-        {ja: "衣料品、衣類", en: "clothing", weak: false}, {ja: "展示(会)、展示(品)、展示する", en: "exhibit", weak: false}, {ja: "物件、不動産、所有物、資産、特性", en: "property", weak: false}, {ja: "拡大する、進出する", en: "expand", weak: false}, {ja: "主催する、司会する、司会者、主催者、主人", en: "host", weak: false}, {ja: "予約する、取っておく、(権利等を)保有する、蓄え", en: "reserve", weak: false}, {ja: "満足した、喜んだ、うれしい", en: "pleased", weak: false}, {ja: "指示(書)、取扱説明書", en: "instruction", weak: false}, {ja: "最新の", en: "latest", weak: false}, {ja: "請求書、法案、請求書を送る", en: "bill", weak: false},
-        {ja: "開発、発展、進展、開発地", en: "development", weak: false}, {ja: "会計、経理", en: "accounting", weak: false}, {ja: "手当、恩恵、特典、利益を得る、利益になる", en: "benefit", weak: false}, {ja: "賃貸借する、レンタルする、家賃、賃貸料", en: "rent", weak: false}, {ja: "代理店、(政府)機関", en: "agency", weak: false}, {ja: "今度の、まもなくやって来る", en: "upcoming", weak: false}, {ja: "受け入れる、受け付ける、受け取る", en: "accept", weak: false}, {ja: "担当者、代表者、典型的な", en: "representative", weak: false}, {ja: "著者、(本などを)書く", en: "author", weak: false}, {ja: "締め切り、(最終)期限", en: "deadline", weak: false},
-        {ja: "住民、居住者", en: "resident", weak: false}, {ja: "候補者、志願者", en: "candidate", weak: false}, {ja: "準備する、手配する、組織する、整理する", en: "organize", weak: false}, {ja: "実験室、研究所", en: "laboratory", weak: false}, {ja: "発売する、公表する、公開する、発売、公表、公開", en: "release", weak: false}, {ja: "行う、ふるまい", en: "conduct", weak: false}, {ja: "参加する", en: "participate", weak: false}, {ja: "法人の、企業の、会社の", en: "corporate", weak: false}, {ja: "意見、感想、フィードバック", en: "feedback", weak: false}, {ja: "委員会", en: "committee", weak: false},
-        {ja: "管理、経営(陣)", en: "management", weak: false}, {ja: "資源、財産、(教育)資料", en: "resource", weak: false}, {ja: "拠点を置く、基礎を置く、基盤、基礎、基本", en: "base", weak: false}, {ja: "現在", en: "currently", weak: false}, {ja: "料金、割合、レート、評価する、格付けする", en: "rate", weak: false}, {ja: "財政上の、財務の、金融上の", en: "financial", weak: false}, {ja: "(よく)考える、検討する", en: "consider", weak: false}, {ja: "設置する、インストールする", en: "install", weak: false}, {ja: "許す、可能にする、(時間などを)見込む", en: "allow", weak: false}, {ja: "同僚", en: "colleague", weak: false},
-        {ja: "見積もり(書)、見積もる", en: "estimate", weak: false}, {ja: "開始する、売り出す、開始、発売", en: "launch", weak: false}, {ja: "感謝する、ありがたく思う、価値を認める", en: "appreciate", weak: false}, {ja: "追跡する、線路、プラットホーム、走路", en: "track", weak: false}, {ja: "残念ながら、あいにく", en: "unfortunately", weak: false}, {ja: "編集者", en: "editor", weak: false}, {ja: "前の、以前の", en: "previous", weak: false}, {ja: "商業用の、商売用の、CM", en: "commercial", weak: false}, {ja: "推薦(状)、照会(先)、参照、言及する", en: "reference", weak: false}, {ja: "招待(状)", en: "invitation", weak: false},
-        {ja: "説明する、描写する", en: "describe", weak: false}, {ja: "知らせる", en: "inform", weak: false}, {ja: "進んで申し出る、志願する、ボランティア、志願者", en: "volunteer", weak: false}, {ja: "重役、役員、重役の、役員の", en: "executive", weak: false}, {ja: "交通機関、交通手段、輸送", en: "transportation", weak: false}, {ja: "支店、支社、支部、分館、枝", en: "branch", weak: false}, {ja: "返金、返金する", en: "refund", weak: false}, {ja: "成功した、好結果の", en: "successful", weak: false}, {ja: "商品", en: "merchandise", weak: false}, {ja: "思い出させる、念を押す", en: "remind", weak: false},
-        {ja: "元の、最初の、独創的な、オリジナル、原本", en: "original", weak: false}, {ja: "品ぞろえ、選択、選抜", en: "selection", weak: false}, {ja: "引きつける、引き寄せる", en: "attract", weak: false}, {ja: "対処する、扱う、手で触れる、取っ手", en: "handle", weak: false}, {ja: "内部連絡、内部通達", en: "memo", weak: false}, {ja: "添付する、取り付ける", en: "attach", weak: false}, {ja: "訂正する、正確な、正しい", en: "correct", weak: false}, {ja: "議会", en: "council", weak: false}, {ja: "〜することになっている、思う", en: "suppose", weak: false}, {ja: "通常の、定期的な、常連の、常連客", en: "regular", weak: false},
-        {ja: "前進、進歩、事前の、進む、前進させる", en: "advance", weak: false}, {ja: "奨励する、勧める、促進する", en: "encourage", weak: false}, {ja: "承認する、賛成する", en: "approve", weak: false}, {ja: "経費、費用", en: "expense", weak: false}, {ja: "改修、改装", en: "renovation", weak: false}, {ja: "素晴らしい、非常に優れた、優秀な", en: "excellent", weak: false}, {ja: "資金、基金、資金を提供する", en: "fund", weak: false}, {ja: "運営する、操作する、操業する、作動する", en: "operate", weak: false}, {ja: "履歴書", en: "résumé", weak: false}, {ja: "予定を変更する", en: "reschedule", weak: false},
-        {ja: "快適な、心地よい、自信が持てる", en: "comfortable", weak: false}, {ja: "検索、捜索、探す、検索する", en: "search", weak: false}, {ja: "写真撮影", en: "photography", weak: false}, {ja: "維持(管理)する、主張する", en: "maintain", weak: false}, {ja: "需要、要求、要求する", en: "demand", weak: false}, {ja: "巻き込む、伴う、含む", en: "involve", weak: false}, {ja: "改良、改善", en: "improvement", weak: false}, {ja: "延期する", en: "postpone", weak: false}, {ja: "勧める、忠告する、助言する", en: "advise", weak: false}, {ja: "得る、手に入れる", en: "obtain", weak: false},
-        {ja: "本社", en: "headquarters", weak: false}, {ja: "さらに進んだ、それ以上の、もっと、さらに", en: "further", weak: false}, {ja: "支援、援助", en: "assistance", weak: false}, {ja: "配布する、分配する、流通させる", en: "distribute", weak: false}, {ja: "(お金・資金を)集める、上げる、育てる、昇給", en: "raise", weak: false}, {ja: "感心させる、感銘を与える", en: "impress", weak: false}, {ja: "探し求める、〜しようとする", en: "seek", weak: false}, {ja: "(国や世界などの広い)地域", en: "region", weak: false}, {ja: "わびる、謝罪する、謝る", en: "apologize", weak: false}, {ja: "(従業員や学生用の)食堂、カフェテリア", en: "cafeteria", weak: false},
-        {ja: "四半期、四分の一", en: "quarter", weak: false}, {ja: "返答する、反応する", en: "respond", weak: false}, {ja: "メーカー、製造業者", en: "manufacturer", weak: false}, {ja: "引き起こす、原因、(運動や活動の)目的", en: "cause", weak: false}, {ja: "機器、装置", en: "device", weak: false}, {ja: "倉庫", en: "warehouse", weak: false}, {ja: "含む", en: "contain", weak: false}, {ja: "個々の、個人の、個人", en: "individual", weak: false}, {ja: "許可証、許可する", en: "permit", weak: false}, {ja: "転勤させる、移動する、移す、転送する、転勤、移動", en: "transfer", weak: false},
-        {ja: "解決策、溶液", en: "solution", weak: false}, {ja: "範囲、範囲に及ぶ", en: "range", weak: false}, {ja: "(旅行者の)手荷物、旅行かばん", en: "luggage", weak: false}, {ja: "避ける", en: "avoid", weak: false}, {ja: "効果的な、(法律や契約などが)有効な", en: "effective", weak: false}, {ja: "投資", en: "investment", weak: false}, {ja: "一般的な、全般的な、全体的な", en: "general", weak: false}, {ja: "学位、(温度などの)度、程度", en: "degree", weak: false}, {ja: "全体の、全部の", en: "entire", weak: false}, {ja: "チーム、グループ、(船や飛行機の)乗務員", en: "crew", weak: false},
-        {ja: "(期間内にやるべき)仕事、任務、職務", en: "task", weak: false}, {ja: "(〜する)つもりである、意図する", en: "intend", weak: false}, {ja: "直接に、じかに", en: "directly", weak: false}, {ja: "(商品やサービスの宣伝用の)パンフレット", en: "brochure", weak: false}, {ja: "競技会、コンテスト、競争(相手)", en: "competition", weak: false}, {ja: "限られた、有限会社の", en: "limited", weak: false}, {ja: "消費者", en: "consumer", weak: false}, {ja: "手順、手続き", en: "procedure", weak: false}, {ja: "潜在的な、可能性", en: "potential", weak: false}, {ja: "中心街の、中心街で、中心街", en: "downtown", weak: false},
-        {ja: "ヒント、助言、こつ、チップ、先端", en: "tip", weak: false}, {ja: "入場(料)、入会(費)", en: "admission", weak: false}, {ja: "到着", en: "arrival", weak: false}, {ja: "利益", en: "profit", weak: false}, {ja: "複合施設、複合ビル、複雑な", en: "complex", weak: false}, {ja: "保険", en: "insurance", weak: false}, {ja: "保証する、保証", en: "guarantee", weak: false}, {ja: "仕上げる、最終決定する、完結させる", en: "finalize", weak: false}, {ja: "関連(関係)する、血縁関係にある", en: "related", weak: false}, {ja: "エントリー(作品)、入ること、入場、入力", en: "entry", weak: false},
-        {ja: "すぐに、ただちに", en: "immediately", weak: false}, {ja: "電子の", en: "electronic", weak: false}, {ja: "非常に、とても、(評価で)高く", en: "highly", weak: false}, {ja: "取引、量、対処する、扱う", en: "deal", weak: false}, {ja: "〜に関する、〜について", en: "regarding", weak: false}, {ja: "(原因などを)特定する、決定する、決める", en: "determine", weak: false}, {ja: "苦情、不満", en: "complaint", weak: false}, {ja: "部門、分割", en: "division", weak: false}, {ja: "退職する、引退する", en: "retire", weak: false}, {ja: "方法", en: "method", weak: false},
-        {ja: "(市や町の)地区", en: "district", weak: false}, {ja: "一流の、主要な", en: "leading", weak: false}, {ja: "規則、規制", en: "regulation", weak: false}, {ja: "市長、町(村)長", en: "mayor", weak: false}, {ja: "能力", en: "ability", weak: false}, {ja: "臨時の、一時的な", en: "temporary", weak: false}, {ja: "建築家", en: "architect", weak: false}, {ja: "影響する", en: "affect", weak: false}, {ja: "効率的な", en: "efficient", weak: false}, {ja: "明細書、声明、発言", en: "statement", weak: false},
-        {ja: "契約(書)、合意", en: "agreement", weak: false}, {ja: "祝賀(会)", en: "celebration", weak: false}, {ja: "現代の、近代的な、最新式の", en: "modern", weak: false}, {ja: "基準、水準、標準の", en: "standard", weak: false}, {ja: "責任がある、原因である", en: "responsible", weak: false}, {ja: "同封する、囲む", en: "enclose", weak: false}, {ja: "特定の、具体的な、特有の", en: "specific", weak: false}, {ja: "更新する", en: "renew", weak: false}, {ja: "絶対に、間違いなく、もちろん", en: "definitely", weak: false}, {ja: "目的地、行き先", en: "destination", weak: false}
-    ];
-
-    let oldWords = JSON.parse(localStorage.getItem('myWords'));
+    // ★単語データを完全に空にしました（爆速で動きます）★
     let appData = JSON.parse(localStorage.getItem('myVocabApp_v2'));
 
     if (!appData) {
         appData = {
             activeDeckId: 'deck_1',
-            decks: { 'deck_1': { id: 'deck_1', name: '基本の単語帳', words: oldWords ? oldWords : initialWords } },
+            decks: { 'deck_1': { id: 'deck_1', name: '基本の単語帳', words: [] } },
             settings: { volume: 1.0, autoPlay: false, playMode: 'once', voiceURI: '' }
         };
-        saveData();
-    } else {
-        if (!appData.settings.playMode) {
-            appData.settings.playMode = 'once'; appData.settings.voiceURI = '';
-        }
-        let mainDeck = appData.decks['deck_1'];
-        if (mainDeck) {
-            initialWords.forEach(newWord => {
-                const exists = mainDeck.words.some(w => w.en === newWord.en);
-                if (!exists) mainDeck.words.push(newWord);
-            });
-        }
         saveData();
     }
 
@@ -234,12 +194,12 @@
         return Array.from(allWordsMap.values());
     }
 
-    // ★リセット機能★
+    // ★完全リセット機能（0単語に戻す）★
     function factoryReset() {
-        if(confirm("本当に追加した単語や学習記録をすべて削除し、初期の250単語に戻しますか？\n（この操作は取り消せません！）")) {
+        if(confirm("本当に追加した単語や学習記録をすべて削除し、完全に0単語の初期状態に戻しますか？\n（この操作は取り消せません！）")) {
             localStorage.removeItem('myVocabApp_v2');
-            localStorage.removeItem('myWords');
-            alert('初期状態にリセットしました。ページを再読み込みします。');
+            localStorage.removeItem('myWords'); // 古いバージョンのデータも念のため消去
+            alert('初期状態（0単語）にリセットしました。ページを再読み込みします。');
             location.reload();
         }
     }
@@ -456,13 +416,11 @@
         else if (e.code === 'ArrowLeft' && isFlipped) handleSwipe('left');
     });
 
-    // ★ダブり防止付きの手動・一括追加機能★
     document.getElementById('add-btn').addEventListener('click', () => {
         const ja = document.getElementById('input-ja').value.trim();
         const en = document.getElementById('input-en').value.trim();
         if (ja && en) {
             const activeWords = getActiveWords();
-            // ダブりチェック
             if (activeWords.some(w => w.en === en)) {
                 alert(`「${en}」はすでに登録されています！`);
                 return;
@@ -489,7 +447,6 @@
                 const en = parts[0].trim(); 
                 const ja = parts[1].trim(); 
                 if (en && ja) { 
-                    // ダブりチェック
                     if (!activeWords.some(w => w.en === en)) {
                         activeWords.unshift({ ja, en, weak: false }); 
                         addedCount++; 
@@ -503,7 +460,7 @@
         if (addedCount > 0 || skippedCount > 0) { 
             saveData(); 
             let msg = `${addedCount}件の単語を追加しました！`;
-            if(skippedCount > 0) msg += `\n（※既に登録済みの${skippedCount}件は自動でスキップされました）`;
+            if(skippedCount > 0) msg += `\n（※既に登録済みの${skippedCount}件はスキップされました）`;
             alert(msg); 
             document.getElementById('bulk-input').value = ''; 
             renderEditList(); 
